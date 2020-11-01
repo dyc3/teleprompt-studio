@@ -1,5 +1,7 @@
 # teleprompt-studio
 
+![Go](https://github.com/dyc3/teleprompt-studio/workflows/Go/badge.svg)
+
 A terminal program that makes it easier and faster to record and manage voice over, particularly for video production, written in Go.
 
 # Workflow
