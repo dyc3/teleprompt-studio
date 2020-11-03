@@ -25,6 +25,11 @@ const ROOTID = "root"
 var scriptWidget *text.Text
 var waveformWidget *linechart.LineChart
 
+// type IgnoreValueFormatter = linechart.ValueFormatter
+func IgnoreValueFormatter(value float64) string {
+	return ""
+}
+
 func buildLayout(t *termbox.Terminal) *container.Container {
 	root, err := container.New(t, container.ID(ROOTID))
 	if err != nil {
@@ -46,7 +51,10 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 		log.Fatal(err)
 	}
 
-	waveformWidget, err = linechart.New()
+	waveformWidget, err = linechart.New(
+		linechart.XAxisUnscaled(),
+		linechart.YAxisFormattedValues(IgnoreValueFormatter),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -113,7 +121,6 @@ func record() {
 	if err != nil {
 		log.Fatalf("Failed to start stream audio: %s", err)
 	}
-	// log.Print(stream.Info())
 
 	samples := make([]float64, 64)
 	for {
@@ -127,7 +134,6 @@ func record() {
 		}
 
 		waveformWidget.Series("Waveform", samples)
-		// waveformWidget.Write(fmt.Sprintf("Samples: %v\n", samples[0]))
 	}
 }
 
