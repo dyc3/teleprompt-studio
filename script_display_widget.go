@@ -5,6 +5,8 @@ import (
 	"log"
 	"sync"
 
+	"github.com/mum4k/termdash/cell"
+
 	"github.com/mum4k/termdash/private/canvas/buffer"
 
 	"github.com/mum4k/termdash/private/canvas"
@@ -29,8 +31,8 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 	}
 
 	width := cvs.Area().Dx()
-	for _, chunk := range *w.chunks {
-		wr, err := wrap.Cells(chunk.GetCellBuffer(), width, wrap.AtWords)
+	for i, chunk := range *w.chunks {
+		wr, err := wrap.Cells(chunk.GetCellBuffer(uint(i) == selectedChunk), width, wrap.AtWords)
 		if err != nil {
 			log.Printf("failed to word wrap chunk content: %s", err)
 		}
@@ -43,7 +45,7 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 			}
 			cur.Y += 1
 		}
-		cur.Y += 2
+		cur.Y += 1
 	}
 	return nil
 }
@@ -86,10 +88,15 @@ func (w *ScriptDisplayWidget) SelectChunk(index uint) {
 	w.selectedChunk = index
 }
 
-func (c *Chunk) GetCellBuffer() []*buffer.Cell {
+func (c *Chunk) GetCellBuffer(isSelected bool) []*buffer.Cell {
 	buf := []*buffer.Cell{}
 	for _, r := range c.Content {
-		buf = append(buf, buffer.NewCell(r))
+		color := cell.ColorWhite
+		if isSelected {
+			color = cell.ColorYellow
+		}
+		cell := buffer.NewCell(r, cell.FgColor(color))
+		buf = append(buf, cell)
 	}
 	return buf
 }
