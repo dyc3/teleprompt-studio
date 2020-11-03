@@ -223,6 +223,12 @@ func main() {
 			if selectedChunk < uint(len(loadedChunks)-1) {
 				selectedChunk += 1
 			}
+		} else if k.Key == 'g' {
+			loadedChunks[selectedChunk].Mark = Good
+		} else if k.Key == 'b' {
+			loadedChunks[selectedChunk].Mark = Bad
+		} else {
+			log.Printf("Unknown key pressed: %v", k)
 		}
 	}
 

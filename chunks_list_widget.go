@@ -30,9 +30,7 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 		color := cell.ColorWhite
 		symbolRune := ' '
 
-		if uint(i) == selectedChunk {
-			color = cell.ColorYellow
-		} else if chunk.Mark == Good {
+		if chunk.Mark == Good {
 			color = cell.ColorGreen
 			symbolRune = '✓'
 		} else if chunk.Mark == Bad {
@@ -41,10 +39,10 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 		}
 
 		symbol := buffer.NewCell(symbolRune, cell.FgColor(color))
-		// if chunk.Mark != Unmarked {
-		// } else {
-		// 	symbol = buffer.NewCell(symbolRune)
-		// }
+
+		if uint(i) == selectedChunk {
+			color = cell.ColorYellow
+		}
 
 		cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
 
