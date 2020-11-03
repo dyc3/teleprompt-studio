@@ -30,6 +30,9 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 
 	width := cvs.Area().Dx()
 	for i, chunk := range loadedChunks {
+		if uint(i) < selectedChunk {
+			continue
+		}
 		color := cell.ColorWhite
 		if uint(i) == selectedChunk {
 			color = cell.ColorYellow
