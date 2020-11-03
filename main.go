@@ -26,7 +26,6 @@ const ROOTID = "root"
 var scriptWidget *text.Text
 var waveformWidget *linechart.LineChart
 
-// type IgnoreValueFormatter = linechart.ValueFormatter
 func IgnoreValueFormatter(value float64) string {
 	return ""
 }
