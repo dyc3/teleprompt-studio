@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gordonklaus/portaudio"
+	"github.com/zimmski/osutil"
 
 	"github.com/mum4k/termdash"
 	"github.com/mum4k/termdash/container"
@@ -105,7 +106,10 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 }
 
 func record() {
-	err := portaudio.Initialize()
+	var err error
+	osutil.CaptureWithCGo(func() {
+		err = portaudio.Initialize()
+	})
 	if err != nil {
 		log.Fatalf("Failed to initialize recording: %s", err)
 	}
