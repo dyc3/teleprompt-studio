@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gordonklaus/portaudio"
@@ -140,6 +142,53 @@ func record() {
 	}
 }
 
+type ChunkMark uint8
+
+const (
+	Unmarked ChunkMark = 0
+	Good     ChunkMark = 1
+	Bad      ChunkMark = 2
+)
+
+type Chunk struct {
+	Content string
+	Mark    ChunkMark
+}
+
+func getChunks(md string) []Chunk {
+	chunks := []Chunk{}
+	lines := strings.Split(md, "\n")
+	c := Chunk{}
+	for _, line := range lines {
+		if line == "" || line[:1] == "#" {
+			if c.Content == "" {
+				continue
+			}
+			chunks = append(chunks, c)
+			c = Chunk{}
+			continue
+		}
+		c.Content += line
+	}
+	chunks = append(chunks, c)
+	return chunks
+}
+
+func readScript(path string) error {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	md := string(b)
+	chunks := getChunks(md)
+
+	for i, chunk := range chunks {
+		scriptWidget.Write(fmt.Sprintf("%d: %s\n\n", i, chunk.Content))
+	}
+	return nil
+}
+
 func main() {
 	scriptFile := flag.String("script", "", "Path to the markdown file to use as input.")
 	flag.Parse()
@@ -160,12 +209,11 @@ func main() {
 		}
 	}
 
-	b, err := ioutil.ReadFile(*scriptFile)
+	err = readScript(*scriptFile)
 	if err != nil {
 		t.Close()
 		log.Fatalf("Failed to open file %s: %s", *scriptFile, err)
 	}
-	scriptWidget.Write(string(b))
 
 	go record()
 
