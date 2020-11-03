@@ -29,28 +29,40 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 	}
 
 	width := cvs.Area().Dx()
-	for i, chunk := range loadedChunks {
-		if uint(i) < selectedChunk {
-			continue
-		}
-		color := cell.ColorWhite
-		if uint(i) == selectedChunk {
-			color = cell.ColorYellow
-		}
-		wr, err := wrap.Cells(buffer.NewCells(chunk.Content, cell.FgColor(color)), width, wrap.AtWords)
-		if err != nil {
-			log.Printf("failed to word wrap chunk content: %s", err)
+	for _, header := range doc {
+		cells := buffer.NewCells(header.Text)
+		lim := clamp(width, 0, len(cells))
+		for _, cell := range cells[:lim] {
+			cvs.SetCell(cur, cell.Rune, cell.Opts)
+			cur.X += 1
 		}
 
-		for _, line := range wr {
-			cur.X = 0
-			for _, cell := range line {
-				cvs.SetCell(cur, cell.Rune, cell.Opts)
-				cur.X += 1
+		cur.Y += 1
+		cur.X = 0
+
+		for i, chunk := range header.Chunks {
+			if uint(i) < selectedChunk {
+				continue
+			}
+			color := cell.ColorWhite
+			if uint(i) == selectedChunk {
+				color = cell.ColorYellow
+			}
+			wr, err := wrap.Cells(buffer.NewCells(chunk.Content, cell.FgColor(color)), width, wrap.AtWords)
+			if err != nil {
+				log.Printf("failed to word wrap chunk content: %s", err)
+			}
+
+			for _, line := range wr {
+				cur.X = 0
+				for _, cell := range line {
+					cvs.SetCell(cur, cell.Rune, cell.Opts)
+					cur.X += 1
+				}
+				cur.Y += 1
 			}
 			cur.Y += 1
 		}
-		cur.Y += 1
 	}
 	return nil
 }

@@ -26,48 +26,60 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 	}
 
 	width := cvs.Area().Dx()
-	for i, chunk := range loadedChunks {
-		color := cell.ColorWhite
-		symbolRune := ' '
-
-		if chunk.Mark == Good {
-			color = cell.ColorGreen
-			symbolRune = '✓'
-		} else if chunk.Mark == Bad {
-			color = cell.ColorRed
-			symbolRune = '✗'
-		}
-
-		symbol := buffer.NewCell(symbolRune, cell.FgColor(color))
-
-		if uint(i) == selectedChunk {
-			color = cell.ColorYellow
-		}
-
-		cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
-
-		header := []*buffer.Cell{
-			buffer.NewCell('[', cell.FgColor(cell.ColorWhite)),
-			symbol,
-			buffer.NewCell(']', cell.FgColor(cell.ColorWhite)),
-		}
-
-		for _, cell := range header {
-			cvs.SetCell(cur, cell.Rune, cell.Opts)
-			cur.X += 1
-		}
-
-		cur.X += 1
-		lim := width - cur.X
-		if lim < 0 {
-			lim = 0
-		}
+	for _, header := range doc {
+		cells := buffer.NewCells(header.Text)
+		lim := clamp(width, 0, len(cells))
 		for _, cell := range cells[:lim] {
 			cvs.SetCell(cur, cell.Rune, cell.Opts)
 			cur.X += 1
 		}
+
 		cur.Y += 1
 		cur.X = 0
+
+		for i, chunk := range header.Chunks {
+			color := cell.ColorWhite
+			symbolRune := ' '
+
+			if chunk.Mark == Good {
+				color = cell.ColorGreen
+				symbolRune = '✓'
+			} else if chunk.Mark == Bad {
+				color = cell.ColorRed
+				symbolRune = '✗'
+			}
+
+			symbol := buffer.NewCell(symbolRune, cell.FgColor(color))
+
+			if uint(i) == selectedChunk {
+				color = cell.ColorYellow
+			}
+
+			cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
+
+			header := []*buffer.Cell{
+				buffer.NewCell('[', cell.FgColor(cell.ColorWhite)),
+				symbol,
+				buffer.NewCell(']', cell.FgColor(cell.ColorWhite)),
+			}
+
+			for _, cell := range header {
+				cvs.SetCell(cur, cell.Rune, cell.Opts)
+				cur.X += 1
+			}
+
+			cur.X += 1
+			lim := clamp(width-cur.X, cur.X, len(cells))
+			if lim < 0 {
+				lim = 0
+			}
+			for _, cell := range cells[:lim] {
+				cvs.SetCell(cur, cell.Rune, cell.Opts)
+				cur.X += 1
+			}
+			cur.Y += 1
+			cur.X = 0
+		}
 	}
 	return nil
 }

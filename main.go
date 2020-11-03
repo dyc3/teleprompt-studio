@@ -29,12 +29,21 @@ import (
 const ROOTID = "root"
 
 var selectedChunk uint
-var loadedChunks []Chunk
+var doc Document
 
 var scriptWidget *ScriptDisplayWidget
 var waveformWidget *linechart.LineChart
 var chunksWidget *ChunkListWidget
 var controlsWidget *text.Text
+
+func clamp(value int, min int, max int) int {
+	if value < min {
+		return min
+	} else if value > max {
+		return max
+	}
+	return value
+}
 
 type keybind struct {
 	key  keyboard.Key
@@ -181,28 +190,68 @@ const (
 	Bad      ChunkMark = 2
 )
 
+type Document []Header
+
+func (doc *Document) CountChunks() int {
+	c := 0
+	for _, h := range *doc {
+		c += len(h.Chunks)
+	}
+	return c
+}
+
+func (doc *Document) GetChunk(index int) *Chunk {
+	for _, h := range *doc {
+		if index-len(h.Chunks) < 0 {
+			return &h.Chunks[index]
+		}
+		index -= len(h.Chunks)
+	}
+	return nil
+}
+
+type Header struct {
+	Chunks []Chunk
+	Text   string
+}
+
 type Chunk struct {
 	Content string
 	Mark    ChunkMark
 }
 
-func getChunks(md string) []Chunk {
-	chunks := []Chunk{}
+func parseDoc(md string) Document {
+	headers := []Header{}
 	lines := strings.Split(md, "\n")
+	h := Header{}
 	c := Chunk{}
 	for _, line := range lines {
-		if line == "" || line[:1] == "#" {
+		if line != "" && line[:1] == "#" {
+			if h.Text == "" {
+				h.Text = line
+			} else {
+				h.Chunks = append(h.Chunks, c)
+				headers = append(headers, h)
+				h = Header{
+					Text: line,
+				}
+				c = Chunk{}
+			}
+			continue
+		}
+		if line == "" {
 			if c.Content == "" {
 				continue
 			}
-			chunks = append(chunks, c)
+			h.Chunks = append(h.Chunks, c)
 			c = Chunk{}
 			continue
 		}
 		c.Content += line
 	}
-	chunks = append(chunks, c)
-	return chunks
+	h.Chunks = append(h.Chunks, c)
+	headers = append(headers, h)
+	return headers
 }
 
 func readScript(path string) error {
@@ -212,7 +261,7 @@ func readScript(path string) error {
 	}
 
 	md := string(b)
-	loadedChunks = getChunks(md)
+	doc = parseDoc(md)
 	return nil
 }
 
@@ -252,13 +301,13 @@ func main() {
 				selectedChunk -= 1
 			}
 		} else if k.Key == keyboard.KeyArrowDown {
-			if selectedChunk < uint(len(loadedChunks)-1) {
+			if selectedChunk < uint(doc.CountChunks()-1) {
 				selectedChunk += 1
 			}
 		} else if k.Key == 'g' {
-			loadedChunks[selectedChunk].Mark = Good
+			doc.GetChunk(int(selectedChunk)).Mark = Good
 		} else if k.Key == 'b' {
-			loadedChunks[selectedChunk].Mark = Bad
+			doc.GetChunk(int(selectedChunk)).Mark = Bad
 		} else {
 			log.Printf("Unknown key pressed: %v", k)
 		}

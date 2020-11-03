@@ -2,19 +2,25 @@ package main
 
 import "testing"
 
-func TestGetChunks(t *testing.T) {
+func TestParseDoc(t *testing.T) {
 	md := `# Test
 chunk 1
 
 chunk 2`
-	chunks := getChunks(md)
-	if len(chunks) != 2 {
-		t.Errorf("Incorrect number of chunks extracted: %d", len(chunks))
+	doc := parseDoc(md)
+	if len(doc) != 1 {
+		t.Errorf("Incorrect number of headers extracted: %d", len(doc))
 	}
-	if chunks[0].Content != "chunk 1" {
-		t.Errorf("Incorrect chunk content: %s", chunks[0].Content)
+	if len(doc[0].Chunks) != 2 {
+		t.Errorf("Incorrect number of chunks extracted: %d", len(doc[0].Chunks))
 	}
-	if chunks[1].Content != "chunk 2" {
-		t.Errorf("Incorrect chunk content: %s", chunks[1].Content)
+	if doc[0].Text != "# Test" {
+		t.Errorf("Incorrect header text: %s", doc[0].Text)
+	}
+	if doc[0].Chunks[0].Content != "chunk 1" {
+		t.Errorf("Incorrect chunk content: %s", doc[0].Chunks[0].Content)
+	}
+	if doc[0].Chunks[1].Content != "chunk 2" {
+		t.Errorf("Incorrect chunk content: %s", doc[0].Chunks[1].Content)
 	}
 }
