@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"flag"
+	"io/ioutil"
 	"log"
 
 	"github.com/mum4k/termdash"
@@ -15,6 +17,8 @@ import (
 )
 
 const ROOTID = "root"
+
+var scriptWidget *text.Text
 
 func buildLayout(t *termbox.Terminal) *container.Container {
 	root, err := container.New(t, container.ID(ROOTID))
@@ -30,11 +34,15 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 	}
 	helloWidget.Write("Hello")
 
+	scriptWidget, err = text.New(
+		text.WrapAtWords(),
+	)
+
 	builder := grid.New()
 	builder.Add(
 		grid.ColWidthPerc(80,
 			grid.RowHeightPerc(50,
-				grid.Widget(helloWidget,
+				grid.Widget(scriptWidget,
 					container.Border(linestyle.Light),
 					container.BorderTitle("Script"),
 				),
@@ -76,6 +84,9 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 }
 
 func main() {
+	scriptFile := flag.String("script", "", "Path to the markdown file to use as input.")
+	flag.Parse()
+
 	t, err := termbox.New(termbox.ColorMode(terminalapi.ColorMode256))
 	if err != nil {
 		log.Fatal(err)
@@ -90,6 +101,14 @@ func main() {
 			cancel()
 		}
 	}
+
+	b, err := ioutil.ReadFile(*scriptFile)
+	if err != nil {
+		t.Close()
+		log.Fatalf("Failed to open file %s: %s", *scriptFile, err)
+	}
+	scriptWidget.Write(string(b))
+
 	if err := termdash.Run(ctx, t, c, termdash.KeyboardSubscriber(quitter)); err != nil {
 		log.Fatalf("%s", err)
 	}
