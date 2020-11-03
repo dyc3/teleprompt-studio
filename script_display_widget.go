@@ -16,9 +16,7 @@ import (
 )
 
 type ScriptDisplayWidget struct {
-	mu            sync.Mutex
-	chunks        *[]Chunk
-	selectedChunk uint
+	mu sync.Mutex
 }
 
 func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
@@ -31,8 +29,12 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 	}
 
 	width := cvs.Area().Dx()
-	for i, chunk := range *w.chunks {
-		wr, err := wrap.Cells(chunk.GetCellBuffer(uint(i) == selectedChunk), width, wrap.AtWords)
+	for i, chunk := range loadedChunks {
+		color := cell.ColorWhite
+		if uint(i) == selectedChunk {
+			color = cell.ColorYellow
+		}
+		wr, err := wrap.Cells(buffer.NewCells(chunk.Content, cell.FgColor(color)), width, wrap.AtWords)
 		if err != nil {
 			log.Printf("failed to word wrap chunk content: %s", err)
 		}
@@ -69,34 +71,4 @@ func (w *ScriptDisplayWidget) Options() widgetapi.Options {
 	defer w.mu.Unlock()
 
 	return widgetapi.Options{}
-}
-
-func (w *ScriptDisplayWidget) SetChunks(chunks []Chunk) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	w.chunks = &chunks
-}
-
-func (w *ScriptDisplayWidget) SelectChunk(index uint) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	if index >= uint(len(*w.chunks)) {
-		index = uint(len(*w.chunks) - 1)
-	}
-	w.selectedChunk = index
-}
-
-func (c *Chunk) GetCellBuffer(isSelected bool) []*buffer.Cell {
-	buf := []*buffer.Cell{}
-	for _, r := range c.Content {
-		color := cell.ColorWhite
-		if isSelected {
-			color = cell.ColorYellow
-		}
-		cell := buffer.NewCell(r, cell.FgColor(color))
-		buf = append(buf, cell)
-	}
-	return buf
 }

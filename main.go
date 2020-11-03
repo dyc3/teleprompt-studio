@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -30,7 +30,7 @@ var loadedChunks []Chunk
 
 var scriptWidget *ScriptDisplayWidget
 var waveformWidget *linechart.LineChart
-var chunksWidget *text.Text
+var chunksWidget *ChunkListWidget
 
 func IgnoreValueFormatter(value float64) string {
 	return ""
@@ -63,7 +63,7 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 		log.Fatal(err)
 	}
 
-	chunksWidget, err = text.New()
+	chunksWidget = &ChunkListWidget{}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -189,16 +189,15 @@ func readScript(path string) error {
 
 	md := string(b)
 	loadedChunks = getChunks(md)
-	scriptWidget.SetChunks(loadedChunks)
 	return nil
 }
 
-func updateSelectedChunk() {
-	scriptWidget.SelectChunk(selectedChunk)
-	chunksWidget.Write(fmt.Sprintf("%d\n", selectedChunk))
-}
-
 func main() {
+	f, err := os.Create("debug.log")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(f)
 	scriptFile := flag.String("script", "", "Path to the markdown file to use as input.")
 	flag.Parse()
 
@@ -207,6 +206,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer t.Close()
+	log.Print("Building layout")
 	c := buildLayout(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -219,15 +219,14 @@ func main() {
 			if selectedChunk > 0 {
 				selectedChunk -= 1
 			}
-			updateSelectedChunk()
 		} else if k.Key == keyboard.KeyArrowDown {
-			if selectedChunk < uint(len(loadedChunks)) {
+			if selectedChunk < uint(len(loadedChunks)-1) {
 				selectedChunk += 1
 			}
-			updateSelectedChunk()
 		}
 	}
 
+	log.Print("Reading script")
 	err = readScript(*scriptFile)
 	if err != nil {
 		t.Close()
@@ -236,6 +235,7 @@ func main() {
 
 	go record()
 
+	log.Print("Running termdash")
 	if err := termdash.Run(ctx, t, c, termdash.KeyboardSubscriber(quitter), termdash.RedrawInterval(10*time.Millisecond)); err != nil {
 		log.Fatalf("%s", err)
 	}
