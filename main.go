@@ -13,12 +13,14 @@ import (
 	"github.com/mum4k/termdash/linestyle"
 	"github.com/mum4k/termdash/terminal/termbox"
 	"github.com/mum4k/termdash/terminal/terminalapi"
+	"github.com/mum4k/termdash/widgets/linechart"
 	"github.com/mum4k/termdash/widgets/text"
 )
 
 const ROOTID = "root"
 
 var scriptWidget *text.Text
+var waveformWidget *linechart.LineChart
 
 func buildLayout(t *termbox.Terminal) *container.Container {
 	root, err := container.New(t, container.ID(ROOTID))
@@ -37,6 +39,14 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 	scriptWidget, err = text.New(
 		text.WrapAtWords(),
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	waveformWidget, err := linechart.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	builder := grid.New()
 	builder.Add(
@@ -48,7 +58,7 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 				),
 			),
 			grid.RowHeightPerc(45,
-				grid.Widget(helloWidget,
+				grid.Widget(waveformWidget,
 					container.Border(linestyle.Light),
 					container.BorderTitle("Audio"),
 				),
@@ -91,6 +101,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer t.Close()
 	c := buildLayout(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
