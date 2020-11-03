@@ -5,6 +5,9 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
+	"time"
+
+	"github.com/gordonklaus/portaudio"
 
 	"github.com/mum4k/termdash"
 	"github.com/mum4k/termdash/container"
@@ -43,7 +46,7 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 		log.Fatal(err)
 	}
 
-	waveformWidget, err := linechart.New()
+	waveformWidget, err = linechart.New()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -93,6 +96,41 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 	return root
 }
 
+func record() {
+	err := portaudio.Initialize()
+	if err != nil {
+		log.Fatalf("Failed to initialize recording: %s", err)
+	}
+	defer portaudio.Terminate()
+	in := make([]int32, 64)
+	stream, err := portaudio.OpenDefaultStream(1, 0, 44100, len(in), in)
+	if err != nil {
+		log.Fatalf("Failed to open stream audio: %s", err)
+	}
+	defer stream.Close()
+
+	err = stream.Start()
+	if err != nil {
+		log.Fatalf("Failed to start stream audio: %s", err)
+	}
+	// log.Print(stream.Info())
+
+	samples := make([]float64, 64)
+	for {
+		err := stream.Read()
+		if err != nil {
+			log.Fatalf("Failed to read stream audio: %s", err)
+		}
+
+		for i, s := range in {
+			samples[i] = float64(s)
+		}
+
+		waveformWidget.Series("Waveform", samples)
+		// waveformWidget.Write(fmt.Sprintf("Samples: %v\n", samples[0]))
+	}
+}
+
 func main() {
 	scriptFile := flag.String("script", "", "Path to the markdown file to use as input.")
 	flag.Parse()
@@ -120,7 +158,9 @@ func main() {
 	}
 	scriptWidget.Write(string(b))
 
-	if err := termdash.Run(ctx, t, c, termdash.KeyboardSubscriber(quitter)); err != nil {
+	go record()
+
+	if err := termdash.Run(ctx, t, c, termdash.KeyboardSubscriber(quitter), termdash.RedrawInterval(10*time.Millisecond)); err != nil {
 		log.Fatalf("%s", err)
 	}
 }

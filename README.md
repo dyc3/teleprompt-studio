@@ -26,3 +26,10 @@ A terminal program that makes it easier and faster to record and manage voice ov
 - Take previewing
 - Good/bad take markers
 - Markdown support
+
+# Building
+
+```
+sudo apt-get install portaudio19-dev
+go build
+```
