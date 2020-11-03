@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"strings"
@@ -24,8 +25,12 @@ import (
 
 const ROOTID = "root"
 
+var selectedChunk uint
+var loadedChunks []Chunk
+
 var scriptWidget *ScriptDisplayWidget
 var waveformWidget *linechart.LineChart
+var chunksWidget *text.Text
 
 func IgnoreValueFormatter(value float64) string {
 	return ""
@@ -58,6 +63,11 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 		log.Fatal(err)
 	}
 
+	chunksWidget, err = text.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	builder := grid.New()
 	builder.Add(
 		grid.ColWidthPerc(80,
@@ -84,7 +94,7 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 
 	builder.Add(
 		grid.ColWidthPerc(20,
-			grid.Widget(helloWidget,
+			grid.Widget(chunksWidget,
 				container.Border(linestyle.Light),
 				container.BorderTitle("Chunks"),
 			),
@@ -178,9 +188,14 @@ func readScript(path string) error {
 	}
 
 	md := string(b)
-	chunks := getChunks(md)
-	scriptWidget.SetChunks(chunks)
+	loadedChunks = getChunks(md)
+	scriptWidget.SetChunks(loadedChunks)
 	return nil
+}
+
+func updateSelectedChunk() {
+	scriptWidget.SelectChunk(selectedChunk)
+	chunksWidget.Write(fmt.Sprintf("%d\n", selectedChunk))
 }
 
 func main() {
@@ -200,6 +215,16 @@ func main() {
 		if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC {
 			t.Close()
 			cancel()
+		} else if k.Key == keyboard.KeyArrowUp {
+			if selectedChunk > 0 {
+				selectedChunk -= 1
+			}
+			updateSelectedChunk()
+		} else if k.Key == keyboard.KeyArrowDown {
+			if selectedChunk < uint(len(loadedChunks)) {
+				selectedChunk += 1
+			}
+			updateSelectedChunk()
 		}
 	}
 
