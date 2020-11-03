@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"strings"
@@ -25,7 +24,7 @@ import (
 
 const ROOTID = "root"
 
-var scriptWidget *text.Text
+var scriptWidget *ScriptDisplayWidget
 var waveformWidget *linechart.LineChart
 
 func IgnoreValueFormatter(value float64) string {
@@ -46,9 +45,7 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 	}
 	helloWidget.Write("Hello")
 
-	scriptWidget, err = text.New(
-		text.WrapAtWords(),
-	)
+	scriptWidget = &ScriptDisplayWidget{}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -182,10 +179,7 @@ func readScript(path string) error {
 
 	md := string(b)
 	chunks := getChunks(md)
-
-	for i, chunk := range chunks {
-		scriptWidget.Write(fmt.Sprintf("%d: %s\n\n", i, chunk.Content))
-	}
+	scriptWidget.SetChunks(chunks)
 	return nil
 }
 
