@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/mum4k/termdash/cell"
 
 	"github.com/gordonklaus/portaudio"
 	"github.com/zimmski/osutil"
@@ -31,6 +34,33 @@ var loadedChunks []Chunk
 var scriptWidget *ScriptDisplayWidget
 var waveformWidget *linechart.LineChart
 var chunksWidget *ChunkListWidget
+var controlsWidget *text.Text
+
+type keybind struct {
+	key  keyboard.Key
+	desc string
+}
+
+func getKeybinds() []keybind {
+	return []keybind{
+		{
+			key:  keyboard.KeyArrowDown,
+			desc: "Next Chunk",
+		},
+		{
+			key:  keyboard.KeyArrowUp,
+			desc: "Previous Chunk",
+		},
+		{
+			key:  'g',
+			desc: "Mark Good",
+		},
+		{
+			key:  'b',
+			desc: "Mark Bad",
+		},
+	}
+}
 
 func IgnoreValueFormatter(value float64) string {
 	return ""
@@ -41,14 +71,6 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	helloWidget, err := text.New(
-		text.WrapAtWords(),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	helloWidget.Write("Hello")
 
 	scriptWidget = &ScriptDisplayWidget{}
 	if err != nil {
@@ -68,6 +90,11 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 		log.Fatal(err)
 	}
 
+	controlsWidget, err = text.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	builder := grid.New()
 	builder.Add(
 		grid.ColWidthPerc(80,
@@ -77,17 +104,14 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 					container.BorderTitle("Script"),
 				),
 			),
-			grid.RowHeightPerc(45,
+			grid.RowHeightPerc(40,
 				grid.Widget(waveformWidget,
 					container.Border(linestyle.Light),
 					container.BorderTitle("Audio"),
 				),
 			),
 			grid.RowHeightFixed(3,
-				grid.Widget(helloWidget,
-					container.Border(linestyle.Light),
-					container.BorderTitle("Controls"),
-				),
+				grid.Widget(controlsWidget),
 			),
 		),
 	)
@@ -192,6 +216,14 @@ func readScript(path string) error {
 	return nil
 }
 
+func buildControlsDisplay() {
+	keybinds := getKeybinds()
+	for _, bind := range keybinds {
+		controlsWidget.Write(fmt.Sprintf("%s", bind.key), text.WriteCellOpts(cell.BgColor(cell.ColorWhite), cell.FgColor(cell.ColorBlack)))
+		controlsWidget.Write(fmt.Sprintf(" %s  ", bind.desc))
+	}
+}
+
 func main() {
 	f, err := os.Create("debug.log")
 	if err != nil {
@@ -231,6 +263,8 @@ func main() {
 			log.Printf("Unknown key pressed: %v", k)
 		}
 	}
+
+	buildControlsDisplay()
 
 	log.Print("Reading script")
 	err = readScript(*scriptFile)
