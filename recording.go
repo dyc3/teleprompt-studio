@@ -7,6 +7,9 @@ import (
 	"github.com/zimmski/osutil"
 )
 
+// TODO: record audio with type that makes sense, not the type that fits into the line chart the easiest
+var audioStream chan []float64 = make(chan []float64)
+
 func record() {
 	const bufSize = 1024
 
@@ -30,6 +33,7 @@ func record() {
 		log.Fatalf("Failed to start stream audio: %s", err)
 	}
 
+	log.Print("Recording started")
 	samples := make([]float64, bufSize)
 	for {
 		err := stream.Read()
@@ -41,6 +45,19 @@ func record() {
 			samples[i] = float64(s)
 		}
 
-		waveformWidget.Series("Waveform", samples)
+		audioStream <- samples
+	}
+}
+
+var recordedAudio []float64 = make([]float64, 0, 44100)
+
+func audioProcessor() {
+	log.Print("Audio processing started")
+	for {
+		buffer := <-audioStream
+		recordedAudio = append(recordedAudio, buffer...)
+
+		displayBuffer := recordedAudio[clamp(len(recordedAudio)-44100, 0, len(recordedAudio)):]
+		waveformWidget.Series("Waveform", displayBuffer)
 	}
 }

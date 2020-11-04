@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 	"time"
 
@@ -88,8 +89,8 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 	}
 
 	waveformWidget, err = linechart.New(
-		linechart.XAxisUnscaled(),
 		linechart.YAxisFormattedValues(IgnoreValueFormatter),
+		linechart.YAxisCustomScale(math.MinInt32, math.MaxInt32),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -231,6 +232,7 @@ func main() {
 	}
 
 	go record()
+	go audioProcessor()
 
 	log.Print("Running termdash")
 	if err := termdash.Run(ctxGlobal, terminal, c, termdash.KeyboardSubscriber(globalKeyboardHandler), termdash.RedrawInterval(10*time.Millisecond)); err != nil {
