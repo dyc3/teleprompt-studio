@@ -51,16 +51,22 @@ func audioProcessor() {
 	for {
 		buffer := <-audioStream
 		recordedAudio = append(recordedAudio, buffer...)
-
-		dispOffset := clamp(len(recordedAudio)-displayBufferSize, 0, len(recordedAudio))
-		displayBuffer := make([]float64, displayBufferSize)
-		for i, s := range recordedAudio[dispOffset:] {
-			displayBuffer[i] = float64(s)
-		}
-		waveformWidget.Series("Waveform", displayBuffer)
 	}
 }
 
 func samplesToDuration(sampleRate int, nSamples int) time.Duration {
 	return time.Duration(nSamples/sampleRate) * time.Second
+}
+
+func durationToSamples(sampleRate int, d time.Duration) int {
+	return int(d.Seconds() * float64(sampleRate))
+}
+
+type TimeSpan struct {
+	Start time.Duration
+	End   time.Duration
+}
+
+func (t *TimeSpan) Duration() time.Duration {
+	return t.End - t.Start
 }

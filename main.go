@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"time"
 
@@ -18,7 +17,6 @@ import (
 	"github.com/mum4k/termdash/linestyle"
 	"github.com/mum4k/termdash/terminal/termbox"
 	"github.com/mum4k/termdash/terminal/terminalapi"
-	"github.com/mum4k/termdash/widgets/linechart"
 	"github.com/mum4k/termdash/widgets/text"
 )
 
@@ -29,7 +27,7 @@ var selectedTake int
 var doc Document
 
 var scriptWidget *ScriptDisplayWidget
-var waveformWidget *linechart.LineChart
+var waveformWidget *AudioDisplayWidget
 var chunksWidget *ChunkListWidget
 var controlsWidget *text.Text
 var takesWidget *TakeListWidget
@@ -88,13 +86,8 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 		log.Fatal(err)
 	}
 
-	waveformWidget, err = linechart.New(
-		linechart.YAxisFormattedValues(IgnoreValueFormatter),
-		linechart.YAxisCustomScale(math.MinInt32, math.MaxInt32),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
+	waveformWidget = &AudioDisplayWidget{}
+	go waveformWidget.animateWaiting()
 
 	chunksWidget = &ChunkListWidget{}
 	if err != nil {
@@ -167,6 +160,7 @@ func buildControlsDisplay() {
 }
 
 type Take struct {
+	TimeSpan
 	Mark TakeMark
 }
 
