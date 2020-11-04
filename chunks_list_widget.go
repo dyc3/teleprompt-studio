@@ -39,34 +39,11 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 
 		for i, chunk := range header.Chunks {
 			color := cell.ColorWhite
-			symbolRune := ' '
-
-			if chunk.Mark == Good {
-				color = cell.ColorGreen
-				symbolRune = '✓'
-			} else if chunk.Mark == Bad {
-				color = cell.ColorRed
-				symbolRune = '✗'
-			}
-
-			symbol := buffer.NewCell(symbolRune, cell.FgColor(color))
-
 			if uint(i) == selectedChunk {
 				color = cell.ColorYellow
 			}
 
 			cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
-
-			header := []*buffer.Cell{
-				buffer.NewCell('[', cell.FgColor(cell.ColorWhite)),
-				symbol,
-				buffer.NewCell(']', cell.FgColor(cell.ColorWhite)),
-			}
-
-			for _, cell := range header {
-				cvs.SetCell(cur, cell.Rune, cell.Opts)
-				cur.X += 1
-			}
 
 			cur.X += 1
 			lim := clamp(width-cur.X, cur.X, len(cells))

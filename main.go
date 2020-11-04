@@ -4,10 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/mum4k/termdash/cell"
@@ -29,12 +27,14 @@ import (
 const ROOTID = "root"
 
 var selectedChunk uint
+var selectedTake int
 var doc Document
 
 var scriptWidget *ScriptDisplayWidget
 var waveformWidget *linechart.LineChart
 var chunksWidget *ChunkListWidget
 var controlsWidget *text.Text
+var takesWidget *TakeListWidget
 
 func clamp(value int, min int, max int) int {
 	if value < min {
@@ -59,6 +59,10 @@ func getKeybinds() []keybind {
 		{
 			key:  keyboard.KeyArrowUp,
 			desc: "Previous Chunk",
+		},
+		{
+			key:  ' ',
+			desc: "Start Take",
 		},
 		{
 			key:  'g',
@@ -104,6 +108,8 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 		log.Fatal(err)
 	}
 
+	takesWidget = &TakeListWidget{}
+
 	builder := grid.New()
 	builder.Add(
 		grid.ColWidthPerc(80,
@@ -127,9 +133,17 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 
 	builder.Add(
 		grid.ColWidthPerc(20,
-			grid.Widget(chunksWidget,
-				container.Border(linestyle.Light),
-				container.BorderTitle("Chunks"),
+			grid.RowHeightPerc(50,
+				grid.Widget(chunksWidget,
+					container.Border(linestyle.Light),
+					container.BorderTitle("Chunks"),
+				),
+			),
+			grid.RowHeightPerc(50,
+				grid.Widget(takesWidget,
+					container.Border(linestyle.Light),
+					container.BorderTitle("Takes"),
+				),
 			),
 		),
 	)
@@ -182,95 +196,16 @@ func record() {
 	}
 }
 
-type ChunkMark uint8
-
-const (
-	Unmarked ChunkMark = 0
-	Good     ChunkMark = 1
-	Bad      ChunkMark = 2
-)
-
-type Document []Header
-
-func (doc *Document) CountChunks() int {
-	c := 0
-	for _, h := range *doc {
-		c += len(h.Chunks)
-	}
-	return c
-}
-
-func (doc *Document) GetChunk(index int) *Chunk {
-	for _, h := range *doc {
-		if index-len(h.Chunks) < 0 {
-			return &h.Chunks[index]
-		}
-		index -= len(h.Chunks)
-	}
-	return nil
-}
-
-type Header struct {
-	Chunks []Chunk
-	Text   string
-}
-
-type Chunk struct {
-	Content string
-	Mark    ChunkMark
-}
-
-func parseDoc(md string) Document {
-	headers := []Header{}
-	lines := strings.Split(md, "\n")
-	h := Header{}
-	c := Chunk{}
-	for _, line := range lines {
-		if line != "" && line[:1] == "#" {
-			if h.Text == "" {
-				h.Text = line
-			} else {
-				h.Chunks = append(h.Chunks, c)
-				headers = append(headers, h)
-				h = Header{
-					Text: line,
-				}
-				c = Chunk{}
-			}
-			continue
-		}
-		if line == "" {
-			if c.Content == "" {
-				continue
-			}
-			h.Chunks = append(h.Chunks, c)
-			c = Chunk{}
-			continue
-		}
-		c.Content += line
-	}
-	h.Chunks = append(h.Chunks, c)
-	headers = append(headers, h)
-	return headers
-}
-
-func readScript(path string) error {
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		return err
-	}
-
-	md := string(b)
-	doc = parseDoc(md)
-	return nil
-}
-
 func buildControlsDisplay() {
 	keybinds := getKeybinds()
 	for _, bind := range keybinds {
 		controlsWidget.Write(fmt.Sprintf("%s", bind.key), text.WriteCellOpts(cell.BgColor(cell.ColorWhite), cell.FgColor(cell.ColorBlack)))
 		controlsWidget.Write(fmt.Sprintf(" %s  ", bind.desc))
 	}
+}
+
+type Take struct {
+	Mark TakeMark
 }
 
 func main() {
@@ -300,14 +235,22 @@ func main() {
 			if selectedChunk > 0 {
 				selectedChunk -= 1
 			}
+			chunk := doc.GetChunk(int(selectedChunk))
+			selectedTake = len(chunk.Takes) - 1
 		} else if k.Key == keyboard.KeyArrowDown {
 			if selectedChunk < uint(doc.CountChunks()-1) {
 				selectedChunk += 1
 			}
+			chunk := doc.GetChunk(int(selectedChunk))
+			selectedTake = len(chunk.Takes) - 1
+		} else if k.Key == ' ' {
+			chunk := doc.GetChunk(int(selectedChunk))
+			chunk.Takes = append(chunk.Takes, Take{})
+			selectedTake = len(chunk.Takes) - 1
 		} else if k.Key == 'g' {
-			doc.GetChunk(int(selectedChunk)).Mark = Good
+			doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Good
 		} else if k.Key == 'b' {
-			doc.GetChunk(int(selectedChunk)).Mark = Bad
+			doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Bad
 		} else {
 			log.Printf("Unknown key pressed: %v", k)
 		}
