@@ -208,6 +208,39 @@ type Take struct {
 	Mark TakeMark
 }
 
+func globalKeyboardHandler(k *terminalapi.Keyboard) {
+	if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC {
+		terminal.Close()
+		cancelGlobal()
+	} else if k.Key == keyboard.KeyArrowUp {
+		if selectedChunk > 0 {
+			selectedChunk -= 1
+		}
+		chunk := doc.GetChunk(int(selectedChunk))
+		selectedTake = len(chunk.Takes) - 1
+	} else if k.Key == keyboard.KeyArrowDown {
+		if selectedChunk < uint(doc.CountChunks()-1) {
+			selectedChunk += 1
+		}
+		chunk := doc.GetChunk(int(selectedChunk))
+		selectedTake = len(chunk.Takes) - 1
+	} else if k.Key == ' ' {
+		chunk := doc.GetChunk(int(selectedChunk))
+		chunk.Takes = append(chunk.Takes, Take{})
+		selectedTake = len(chunk.Takes) - 1
+	} else if k.Key == 'g' {
+		doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Good
+	} else if k.Key == 'b' {
+		doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Bad
+	} else {
+		log.Printf("Unknown key pressed: %v", k)
+	}
+}
+
+var terminal *termbox.Terminal
+var ctxGlobal context.Context
+var cancelGlobal context.CancelFunc
+
 func main() {
 	f, err := os.Create("debug.log")
 	if err != nil {
@@ -217,58 +250,29 @@ func main() {
 	scriptFile := flag.String("script", "", "Path to the markdown file to use as input.")
 	flag.Parse()
 
-	t, err := termbox.New(termbox.ColorMode(terminalapi.ColorMode256))
+	terminal, err = termbox.New(termbox.ColorMode(terminalapi.ColorMode256))
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer t.Close()
+	defer terminal.Close()
 	log.Print("Building layout")
-	c := buildLayout(t)
+	c := buildLayout(terminal)
 
-	ctx, cancel := context.WithCancel(context.Background())
-
-	quitter := func(k *terminalapi.Keyboard) {
-		if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC {
-			t.Close()
-			cancel()
-		} else if k.Key == keyboard.KeyArrowUp {
-			if selectedChunk > 0 {
-				selectedChunk -= 1
-			}
-			chunk := doc.GetChunk(int(selectedChunk))
-			selectedTake = len(chunk.Takes) - 1
-		} else if k.Key == keyboard.KeyArrowDown {
-			if selectedChunk < uint(doc.CountChunks()-1) {
-				selectedChunk += 1
-			}
-			chunk := doc.GetChunk(int(selectedChunk))
-			selectedTake = len(chunk.Takes) - 1
-		} else if k.Key == ' ' {
-			chunk := doc.GetChunk(int(selectedChunk))
-			chunk.Takes = append(chunk.Takes, Take{})
-			selectedTake = len(chunk.Takes) - 1
-		} else if k.Key == 'g' {
-			doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Good
-		} else if k.Key == 'b' {
-			doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Bad
-		} else {
-			log.Printf("Unknown key pressed: %v", k)
-		}
-	}
+	ctxGlobal, cancelGlobal = context.WithCancel(context.Background())
 
 	buildControlsDisplay()
 
 	log.Print("Reading script")
 	err = readScript(*scriptFile)
 	if err != nil {
-		t.Close()
+		terminal.Close()
 		log.Fatalf("Failed to open file %s: %s", *scriptFile, err)
 	}
 
 	go record()
 
 	log.Print("Running termdash")
-	if err := termdash.Run(ctx, t, c, termdash.KeyboardSubscriber(quitter), termdash.RedrawInterval(10*time.Millisecond)); err != nil {
+	if err := termdash.Run(ctxGlobal, terminal, c, termdash.KeyboardSubscriber(globalKeyboardHandler), termdash.RedrawInterval(10*time.Millisecond)); err != nil {
 		log.Fatalf("%s", err)
 	}
 }
