@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/gordonklaus/portaudio"
 	"github.com/zimmski/osutil"
@@ -58,4 +59,8 @@ func audioProcessor() {
 		}
 		waveformWidget.Series("Waveform", displayBuffer)
 	}
+}
+
+func samplesToDuration(sampleRate int, nSamples int) time.Duration {
+	return time.Duration(nSamples/sampleRate) * time.Second
 }
