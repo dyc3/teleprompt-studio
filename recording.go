@@ -8,6 +8,8 @@ import (
 )
 
 func record() {
+	const bufSize = 1024
+
 	var err error
 	osutil.CaptureWithCGo(func() {
 		err = portaudio.Initialize()
@@ -16,7 +18,7 @@ func record() {
 		log.Fatalf("Failed to initialize recording: %s", err)
 	}
 	defer portaudio.Terminate()
-	in := make([]int32, 64)
+	in := make([]int32, bufSize)
 	stream, err := portaudio.OpenDefaultStream(1, 0, 44100, len(in), in)
 	if err != nil {
 		log.Fatalf("Failed to open stream audio: %s", err)
@@ -28,7 +30,7 @@ func record() {
 		log.Fatalf("Failed to start stream audio: %s", err)
 	}
 
-	samples := make([]float64, 64)
+	samples := make([]float64, bufSize)
 	for {
 		err := stream.Read()
 		if err != nil {
