@@ -53,7 +53,9 @@ func parseDoc(md string) Document {
 			if h.Text == "" {
 				h.Text = line
 			} else {
-				h.Chunks = append(h.Chunks, c)
+				if c.Content != "" {
+					h.Chunks = append(h.Chunks, c)
+				}
 				headers = append(headers, h)
 				h = Header{
 					Text: line,
