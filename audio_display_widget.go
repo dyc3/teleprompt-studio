@@ -106,32 +106,17 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 		return err
 	}
 
-	cells := buffer.NewCells(fmt.Sprintf("%s", w.window.Start))
+	cells := buffer.NewCells(fmt.Sprintf("%s", Timestamp(&w.window.Start)))
 	x, y := 0, w.area.Dy()-1
-	for i, c := range cells {
-		cvs.SetCell(image.Point{
-			X: x + i,
-			Y: y,
-		}, c.Rune, c.Opts)
-	}
+	DrawCells(cvs, cells, x, y)
 
-	cells = buffer.NewCells(fmt.Sprintf("%s", w.window.End))
+	cells = buffer.NewCells(fmt.Sprintf("%s", Timestamp(&w.window.End)))
 	x, y = w.area.Dx()-len(cells), w.area.Dy()-1
-	for i, c := range cells {
-		cvs.SetCell(image.Point{
-			X: x + i,
-			Y: y,
-		}, c.Rune, c.Opts)
-	}
+	DrawCells(cvs, cells, x, y)
 
 	cells = buffer.NewCells(fmt.Sprintf("%v (%d) [%d:%d] %v", w.window, len(recordedAudio), start, end, w.area))
 	x, y = (w.area.Dx()/2)-(len(cells)/2), 0
-	for i, c := range cells {
-		cvs.SetCell(image.Point{
-			X: x + i,
-			Y: y,
-		}, c.Rune, c.Opts)
-	}
+	DrawCells(cvs, cells, x, y)
 
 	return nil
 }

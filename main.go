@@ -32,19 +32,6 @@ var chunksWidget *ChunkListWidget
 var controlsWidget *text.Text
 var takesWidget *TakeListWidget
 
-func clamp(value int, min int, max int) int {
-	if value < min {
-		return min
-	} else if value > max {
-		return max
-	}
-	return value
-}
-
-func valmap(x, in_min, in_max, out_min, out_max int) int {
-	return (x-in_min)*(out_max-out_min)/(in_max-in_min) + out_min
-}
-
 type keybind struct {
 	key  keyboard.Key
 	desc string
