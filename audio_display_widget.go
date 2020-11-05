@@ -79,7 +79,6 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 	end = clamp(end, 0, len(recordedAudio)-1)
 	samples := recordedAudio[start:end]
 	bc, err := braille.New(w.area)
-	bc.Area()
 	if err != nil {
 		return err
 	}
