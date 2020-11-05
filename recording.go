@@ -8,6 +8,8 @@ import (
 	"github.com/zimmski/osutil"
 )
 
+const sampleRate = 44100
+
 var audioStream chan []int32 = make(chan []int32)
 
 func record() {
@@ -22,7 +24,7 @@ func record() {
 	}
 	defer portaudio.Terminate()
 	in := make([]int32, bufSize)
-	stream, err := portaudio.OpenDefaultStream(1, 0, 44100, len(in), in)
+	stream, err := portaudio.OpenDefaultStream(1, 0, sampleRate, len(in), in)
 	if err != nil {
 		log.Fatalf("Failed to open stream audio: %s", err)
 	}
@@ -43,11 +45,11 @@ func record() {
 	}
 }
 
-var recordedAudio []int32 = make([]int32, 0, 44100)
+var recordedAudio []int32 = make([]int32, 0, sampleRate)
 
 func audioProcessor() {
 	log.Print("Audio processing started")
-	const displayBufferSize = 44100
+	const displayBufferSize = sampleRate
 	for {
 		buffer := <-audioStream
 		recordedAudio = append(recordedAudio, buffer...)
@@ -55,7 +57,7 @@ func audioProcessor() {
 }
 
 func samplesToDuration(sampleRate int, nSamples int) time.Duration {
-	return time.Duration(nSamples/sampleRate) * time.Second
+	return time.Duration(nSamples) * time.Second / time.Duration(sampleRate)
 }
 
 func durationToSamples(sampleRate int, d time.Duration) int {

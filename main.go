@@ -41,6 +41,10 @@ func clamp(value int, min int, max int) int {
 	return value
 }
 
+func valmap(x, in_min, in_max, out_min, out_max int) int {
+	return (x-in_min)*(out_max-out_min)/(in_max-in_min) + out_min
+}
+
 type keybind struct {
 	key  keyboard.Key
 	desc string
@@ -87,6 +91,7 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 	}
 
 	waveformWidget = &AudioDisplayWidget{}
+	waveformWidget.stickToEnd = true
 	go waveformWidget.animateWaiting()
 
 	chunksWidget = &ChunkListWidget{}
@@ -151,7 +156,8 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 	return root
 }
 
-func buildControlsDisplay() {
+func updateControlsDisplay() {
+	controlsWidget.Reset()
 	keybinds := getKeybinds()
 	for _, bind := range keybinds {
 		controlsWidget.Write(fmt.Sprintf("%s", bind.key), text.WriteCellOpts(cell.BgColor(cell.ColorWhite), cell.FgColor(cell.ColorBlack)))
@@ -216,7 +222,7 @@ func main() {
 
 	ctxGlobal, cancelGlobal = context.WithCancel(context.Background())
 
-	buildControlsDisplay()
+	updateControlsDisplay()
 
 	log.Print("Reading script")
 	err = readScript(*scriptFile)
