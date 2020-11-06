@@ -89,3 +89,13 @@ func readScript(path string) error {
 	doc = parseDoc(md)
 	return nil
 }
+
+func (d *Document) GetAllTakes() []Take {
+	var takes []Take
+	for _, h := range *d {
+		for _, c := range h.Chunks {
+			takes = append(takes, c.Takes...)
+		}
+	}
+	return takes
+}

@@ -89,6 +89,12 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 	if err != nil {
 		return err
 	}
+	var takes []Take
+	for _, t := range doc.GetAllTakes() {
+		if (t.End < w.window.End && t.End > w.window.Start) || (t.Start > w.window.Start && t.Start < w.window.End) {
+			takes = append(takes, t)
+		}
+	}
 
 	chunk_length := len(samples) / bc.Area().Dx()
 	for x := 0; x < bc.Area().Dx(); x++ {
@@ -104,6 +110,11 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 		}
 
 		color := cell.ColorWhite
+		for _, t := range takes {
+			if start+cStart >= durationToSamples(sampleRate, t.Start) && start+cEnd <= durationToSamples(sampleRate, t.End) {
+				color = cell.ColorGreen
+			}
+		}
 		if w.selectionActive {
 			if start+cStart >= durationToSamples(sampleRate, w.selected.Start) && start+cEnd <= durationToSamples(sampleRate, w.selected.End) {
 				color = cell.ColorYellow

@@ -25,6 +25,7 @@ const ROOTID = "root"
 var selectedChunk uint
 var selectedTake int
 var doc Document
+var isRecordingTake bool
 
 var scriptWidget *ScriptDisplayWidget
 var waveformWidget *AudioDisplayWidget
@@ -175,8 +176,16 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 		selectedTake = len(chunk.Takes) - 1
 	} else if k.Key == ' ' {
 		chunk := doc.GetChunk(int(selectedChunk))
-		chunk.Takes = append(chunk.Takes, Take{})
-		selectedTake = len(chunk.Takes) - 1
+		if !isRecordingTake {
+			take := Take{}
+			take.Start = samplesToDuration(sampleRate, len(recordedAudio))
+			chunk.Takes = append(chunk.Takes, take)
+			selectedTake = len(chunk.Takes) - 1
+			isRecordingTake = true
+		} else {
+			chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(recordedAudio))
+			isRecordingTake = false
+		}
 	} else if k.Key == 'g' {
 		doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Good
 	} else if k.Key == 'b' {
