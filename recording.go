@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -76,4 +77,32 @@ type TimeSpan struct {
 
 func (t *TimeSpan) Duration() time.Duration {
 	return t.End - t.Start
+}
+
+type Take struct {
+	TimeSpan
+	Mark TakeMark
+}
+
+func startTake() error {
+	if isRecordingTake {
+		return errors.New("Already recording take")
+	}
+	chunk := doc.GetChunk(int(selectedChunk))
+	take := Take{}
+	take.Start = samplesToDuration(sampleRate, len(recordedAudio))
+	chunk.Takes = append(chunk.Takes, take)
+	selectedTake = len(chunk.Takes) - 1
+	isRecordingTake = true
+	return nil
+}
+
+func endTake() error {
+	if !isRecordingTake {
+		return errors.New("Not recording take")
+	}
+	chunk := doc.GetChunk(int(selectedChunk))
+	chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(recordedAudio))
+	isRecordingTake = false
+	return nil
 }

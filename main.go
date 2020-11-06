@@ -153,43 +153,44 @@ func updateControlsDisplay() {
 	}
 }
 
-type Take struct {
-	TimeSpan
-	Mark TakeMark
-}
-
 func globalKeyboardHandler(k *terminalapi.Keyboard) {
 	if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC {
 		terminal.Close()
 		cancelGlobal()
 	} else if k.Key == keyboard.KeyArrowUp {
+		if isRecordingTake {
+			return
+		}
 		if selectedChunk > 0 {
 			selectedChunk -= 1
 		}
 		chunk := doc.GetChunk(int(selectedChunk))
 		selectedTake = len(chunk.Takes) - 1
 	} else if k.Key == keyboard.KeyArrowDown {
+		if isRecordingTake {
+			return
+		}
 		if selectedChunk < uint(doc.CountChunks()-1) {
 			selectedChunk += 1
 		}
 		chunk := doc.GetChunk(int(selectedChunk))
 		selectedTake = len(chunk.Takes) - 1
 	} else if k.Key == ' ' {
-		chunk := doc.GetChunk(int(selectedChunk))
 		if !isRecordingTake {
-			take := Take{}
-			take.Start = samplesToDuration(sampleRate, len(recordedAudio))
-			chunk.Takes = append(chunk.Takes, take)
-			selectedTake = len(chunk.Takes) - 1
-			isRecordingTake = true
+			startTake()
 		} else {
-			chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(recordedAudio))
-			isRecordingTake = false
+			endTake()
 		}
 	} else if k.Key == 'g' {
 		doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Good
+		if isRecordingTake {
+			endTake()
+		}
 	} else if k.Key == 'b' {
 		doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Bad
+		if isRecordingTake {
+			endTake()
+		}
 	} else {
 		log.Printf("Unknown key pressed: %v", k)
 	}
