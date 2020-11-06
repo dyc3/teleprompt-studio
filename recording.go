@@ -53,6 +53,11 @@ func audioProcessor() {
 	for {
 		buffer := <-audioStream
 		recordedAudio = append(recordedAudio, buffer...)
+
+		if isRecordingTake {
+			chunk := doc.GetChunk(int(selectedChunk))
+			chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(recordedAudio))
+		}
 	}
 }
 
