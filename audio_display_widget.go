@@ -164,7 +164,14 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 		w.stickToEnd = !w.stickToEnd
 	} else if m.Button == mouse.ButtonLeft {
 		if w.selectionActive {
-			w.selected.End = mousePointToTimestampOffset(m.Position, w.area, w.window)
+			startPoint := mousePointToTimestampOffset(w.lastClickStart, w.area, w.window)
+			dragPoint := mousePointToTimestampOffset(m.Position, w.area, w.window)
+			if m.Position.X < w.lastClickStart.X {
+				w.selected.Start = dragPoint
+				w.selected.End = startPoint
+			} else {
+				w.selected.End = dragPoint
+			}
 		} else {
 			w.selectionActive = true
 			w.selected = TimeSpan{
