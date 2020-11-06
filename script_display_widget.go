@@ -28,24 +28,41 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 		Y: 0,
 	}
 
-	width := cvs.Area().Dx()
+	var renderable []interface{}
+
 	for _, header := range doc {
-		cells := buffer.NewCells(header.Text)
-		lim := clamp(width, 0, len(cells))
-		for _, cell := range cells[:lim] {
-			cvs.SetCell(cur, cell.Rune, cell.Opts)
-			cur.X += 1
+		renderable = append(renderable, header)
+		for _, chunk := range header.Chunks {
+			renderable = append(renderable, chunk)
 		}
+	}
 
-		cur.Y += 1
-		cur.X = 0
-
-		for i, chunk := range header.Chunks {
-			if uint(i) < selectedChunk {
+	width := cvs.Area().Dx()
+	chunkIdx := 0
+	for _, r := range renderable {
+		switch t := r.(type) {
+		case Header:
+			if uint(chunkIdx) < selectedChunk {
 				continue
 			}
+			cur.X = 0
+			header := t
+			cells := buffer.NewCells(header.Text)
+			lim := clamp(width, 0, len(cells))
+			for _, cell := range cells[:lim] {
+				cvs.SetCell(cur, cell.Rune, cell.Opts)
+				cur.X += 1
+			}
+			cur.Y += 1
+			cur.X = 0
+		case Chunk:
+			if uint(chunkIdx) < selectedChunk {
+				chunkIdx++
+				continue
+			}
+			chunk := t
 			color := cell.ColorWhite
-			if uint(i) == selectedChunk {
+			if uint(chunkIdx) == selectedChunk {
 				color = cell.ColorYellow
 			}
 			wr, err := wrap.Cells(buffer.NewCells(chunk.Content, cell.FgColor(color)), width, wrap.AtWords)
@@ -62,6 +79,10 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 				cur.Y += 1
 			}
 			cur.Y += 1
+
+			chunkIdx++
+		default:
+			log.Printf("Unknown type %T", t)
 		}
 	}
 	return nil
