@@ -234,3 +234,10 @@ func (w *AudioDisplayWidget) Options() widgetapi.Options {
 func mousePointToTimestampOffset(p image.Point, area image.Rectangle, window TimeSpan) time.Duration {
 	return window.Start + window.Duration()*time.Duration(p.X)/time.Duration(area.Dx())
 }
+
+func (w *AudioDisplayWidget) Deselect() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	w.selectionActive = false
+}

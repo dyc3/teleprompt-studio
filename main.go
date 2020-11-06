@@ -63,6 +63,15 @@ func getAvailableKeybinds() []keybind {
 				desc: "Mark Bad",
 			},
 		}...)
+
+		if waveformWidget.selectionActive {
+			keys = append(keys,
+				keybind{
+					key:  't',
+					desc: "New Take from selection",
+				},
+			)
+		}
 	} else {
 		keys = append(keys, []keybind{
 			{
@@ -210,10 +219,24 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 		if isRecordingTake {
 			endTake()
 		}
+	} else if k.Key == 't' {
+		if waveformWidget.selectionActive {
+			chunk := doc.GetChunk(int(selectedChunk))
+			take := Take{}
+			take.Start = waveformWidget.selected.Start
+			take.End = waveformWidget.selected.End
+			chunk.Takes = append(chunk.Takes, take)
+			selectedTake = len(chunk.Takes) - 1
+			waveformWidget.Deselect()
+		}
 	} else {
 		log.Printf("Unknown key pressed: %v", k)
 	}
 
+	updateControlsDisplay()
+}
+
+func globalMouseHandler(m *terminalapi.Mouse) {
 	updateControlsDisplay()
 }
 
@@ -253,7 +276,7 @@ func main() {
 	go audioProcessor()
 
 	log.Print("Running termdash")
-	if err := termdash.Run(ctxGlobal, terminal, c, termdash.KeyboardSubscriber(globalKeyboardHandler), termdash.RedrawInterval(10*time.Millisecond)); err != nil {
+	if err := termdash.Run(ctxGlobal, terminal, c, termdash.KeyboardSubscriber(globalKeyboardHandler), termdash.MouseSubscriber(globalMouseHandler), termdash.RedrawInterval(10*time.Millisecond)); err != nil {
 		log.Fatalf("%s", err)
 	}
 }
