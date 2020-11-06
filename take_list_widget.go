@@ -28,7 +28,7 @@ func (w *TakeListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 
 	width := cvs.Area().Dx()
 
-	for i, Take := range doc.GetChunk(int(selectedChunk)).Takes {
+	for i, Take := range currentSession.Doc.GetChunk(int(selectedChunk)).Takes {
 		color := cell.ColorWhite
 		symbolRune := ' '
 

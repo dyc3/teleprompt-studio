@@ -24,7 +24,6 @@ const ROOTID = "root"
 
 var selectedChunk uint
 var selectedTake int
-var doc Document
 var isRecordingTake bool
 
 var scriptWidget *ScriptDisplayWidget
@@ -192,16 +191,16 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 		if selectedChunk > 0 {
 			selectedChunk -= 1
 		}
-		chunk := doc.GetChunk(int(selectedChunk))
+		chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 		selectedTake = len(chunk.Takes) - 1
 	} else if k.Key == keyboard.KeyArrowDown {
 		if isRecordingTake {
 			return
 		}
-		if selectedChunk < uint(doc.CountChunks()-1) {
+		if selectedChunk < uint(currentSession.Doc.CountChunks()-1) {
 			selectedChunk += 1
 		}
-		chunk := doc.GetChunk(int(selectedChunk))
+		chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 		selectedTake = len(chunk.Takes) - 1
 	} else if k.Key == ' ' {
 		if !isRecordingTake {
@@ -210,18 +209,18 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 			endTake()
 		}
 	} else if k.Key == 'g' {
-		doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Good
+		currentSession.Doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Good
 		if isRecordingTake {
 			endTake()
 		}
 	} else if k.Key == 'b' {
-		doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Bad
+		currentSession.Doc.GetChunk(int(selectedChunk)).Takes[selectedTake].Mark = Bad
 		if isRecordingTake {
 			endTake()
 		}
 	} else if k.Key == 't' {
 		if waveformWidget.selectionActive {
-			chunk := doc.GetChunk(int(selectedChunk))
+			chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 			take := Take{}
 			take.Start = waveformWidget.selected.Start
 			take.End = waveformWidget.selected.End
@@ -265,6 +264,10 @@ func main() {
 
 	updateControlsDisplay()
 
+	currentSession = Session{
+		Audio: make([]int32, 0, sampleRate),
+	}
+
 	log.Print("Reading script")
 	err = readScript(*scriptFile)
 	if err != nil {
@@ -272,7 +275,7 @@ func main() {
 		log.Fatalf("Failed to open file %s: %s", *scriptFile, err)
 	}
 
-	go record()
+	StartSession()
 	go audioProcessor()
 
 	log.Print("Running termdash")

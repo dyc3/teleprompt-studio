@@ -11,7 +11,14 @@ import (
 
 const sampleRate = 44100
 
+var isRecording bool = false
 var audioStream chan []int32 = make(chan []int32)
+var currentSession Session
+
+type Session struct {
+	Audio []int32
+	Doc   Document
+}
 
 func record() {
 	const bufSize = 1024
@@ -36,6 +43,7 @@ func record() {
 		log.Fatalf("Failed to start stream audio: %s", err)
 	}
 
+	isRecording = true
 	log.Print("Recording started")
 	for {
 		err := stream.Read()
@@ -43,21 +51,35 @@ func record() {
 			log.Fatalf("Failed to read stream audio: %s", err)
 		}
 		audioStream <- in
+		if !isRecording {
+			break
+		}
 	}
 }
 
-var recordedAudio []int32 = make([]int32, 0, sampleRate)
+func StartSession() {
+	if !isRecording {
+		go record()
+	}
+}
+
+func EndSession() {
+	if isRecording {
+		isRecording = false
+	}
+	// TODO: save session
+}
 
 func audioProcessor() {
 	log.Print("Audio processing started")
 	const displayBufferSize = sampleRate
 	for {
 		buffer := <-audioStream
-		recordedAudio = append(recordedAudio, buffer...)
+		currentSession.Audio = append(currentSession.Audio, buffer...)
 
 		if isRecordingTake {
-			chunk := doc.GetChunk(int(selectedChunk))
-			chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(recordedAudio))
+			chunk := currentSession.Doc.GetChunk(int(selectedChunk))
+			chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
 		}
 	}
 }
@@ -88,9 +110,9 @@ func startTake() error {
 	if isRecordingTake {
 		return errors.New("Already recording take")
 	}
-	chunk := doc.GetChunk(int(selectedChunk))
+	chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 	take := Take{}
-	take.Start = samplesToDuration(sampleRate, len(recordedAudio))
+	take.Start = samplesToDuration(sampleRate, len(currentSession.Audio))
 	chunk.Takes = append(chunk.Takes, take)
 	selectedTake = len(chunk.Takes) - 1
 	isRecordingTake = true
@@ -101,8 +123,8 @@ func endTake() error {
 	if !isRecordingTake {
 		return errors.New("Not recording take")
 	}
-	chunk := doc.GetChunk(int(selectedChunk))
-	chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(recordedAudio))
+	chunk := currentSession.Doc.GetChunk(int(selectedChunk))
+	chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
 	isRecordingTake = false
 	return nil
 }

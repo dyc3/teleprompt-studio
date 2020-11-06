@@ -25,7 +25,7 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 		Y: 0,
 	}
 
-	renderable := doc.GetRenderable()
+	renderable := currentSession.Doc.GetRenderable()
 	width := cvs.Area().Dx()
 	chunkIdx := 0
 	for _, r := range renderable {

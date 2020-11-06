@@ -36,7 +36,7 @@ type AudioDisplayWidget struct {
 }
 
 func (w *AudioDisplayWidget) animateWaiting() {
-	for len(recordedAudio) == 0 {
+	for len(currentSession.Audio) == 0 {
 		w.waitingFrame++
 		if w.waitingFrame >= len(waitingAnimation) {
 			w.waitingFrame = 0
@@ -53,7 +53,7 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 
 	w.area = cvs.Area()
 
-	if len(recordedAudio) == 0 {
+	if len(currentSession.Audio) == 0 {
 		cells := buffer.NewCells(string(waitingAnimation[w.waitingFrame]) + " Waiting for audio...")
 		x, y := (w.area.Dx()/2)-(len(cells)/2), w.area.Dy()/2
 		for i, c := range cells {
@@ -67,7 +67,7 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 	}
 
 	if w.stickToEnd {
-		recorded := samplesToDuration(sampleRate, len(recordedAudio))
+		recorded := samplesToDuration(sampleRate, len(currentSession.Audio))
 		diff := recorded - w.window.End
 		w.window.End += diff
 		w.window.Start += diff
@@ -81,16 +81,16 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 	}
 
 	start := durationToSamples(sampleRate, w.window.Start)
-	start = clamp(start, 0, len(recordedAudio)-1)
+	start = clamp(start, 0, len(currentSession.Audio)-1)
 	end := durationToSamples(sampleRate, w.window.End)
-	end = clamp(end, 0, len(recordedAudio)-1)
-	samples := recordedAudio[start:end]
+	end = clamp(end, 0, len(currentSession.Audio)-1)
+	samples := currentSession.Audio[start:end]
 	bc, err := braille.New(w.area)
 	if err != nil {
 		return err
 	}
 	var takes []Take
-	for _, t := range doc.GetAllTakes() {
+	for _, t := range currentSession.Doc.GetAllTakes() {
 		if (t.End < w.window.End && t.End > w.window.Start) || (t.Start > w.window.Start && t.Start < w.window.End) {
 			takes = append(takes, t)
 		}
@@ -154,7 +154,7 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 	x, y = w.area.Dx()-len(cells), w.area.Dy()-1
 	DrawCells(cvs, cells, x, y)
 
-	cells = buffer.NewCells(fmt.Sprintf("%v (%d) [%d:%d] %v", w.selected, len(recordedAudio), start, end, w.area))
+	cells = buffer.NewCells(fmt.Sprintf("%v (%d) [%d:%d] %v", w.selected, len(currentSession.Audio), start, end, w.area))
 	x, y = (w.area.Dx()/2)-(len(cells)/2), 0
 	DrawCells(cvs, cells, x, y)
 

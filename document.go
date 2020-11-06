@@ -86,7 +86,7 @@ func readScript(path string) error {
 	}
 
 	md := string(b)
-	doc = parseDoc(md)
+	currentSession.Doc = parseDoc(md)
 	return nil
 }
 
@@ -103,7 +103,7 @@ func (d *Document) GetAllTakes() []Take {
 func (d *Document) GetRenderable() []interface{} {
 	var renderable []interface{}
 
-	for _, header := range doc {
+	for _, header := range currentSession.Doc {
 		renderable = append(renderable, header)
 		for _, chunk := range header.Chunks {
 			renderable = append(renderable, chunk)
