@@ -25,27 +25,37 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 		Y: 0,
 	}
 
+	renderable := doc.GetRenderable()
 	width := cvs.Area().Dx()
-	for _, header := range doc {
-		cells := buffer.NewCells(header.Text)
-		lim := clamp(width, 0, len(cells))
-		for _, cell := range cells[:lim] {
-			cvs.SetCell(cur, cell.Rune, cell.Opts)
-			cur.X += 1
-		}
-
-		cur.Y += 1
-		cur.X = 0
-
-		for i, chunk := range header.Chunks {
+	chunkIdx := 0
+	for _, r := range renderable {
+		switch t := r.(type) {
+		case Header:
+			if uint(chunkIdx) < selectedChunk {
+				continue
+			}
+			cur.X = 0
+			header := t
+			cells := buffer.NewCells(header.Text)
+			lim := clamp(width, 0, len(cells))
+			for _, cell := range cells[:lim] {
+				cvs.SetCell(cur, cell.Rune, cell.Opts)
+				cur.X += 1
+			}
+			cur.Y += 1
+		case Chunk:
+			if uint(chunkIdx) < selectedChunk {
+				chunkIdx++
+				continue
+			}
+			chunk := t
 			color := cell.ColorWhite
-			if uint(i) == selectedChunk {
+			if uint(chunkIdx) == selectedChunk {
 				color = cell.ColorYellow
 			}
-
 			cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
 
-			cur.X += 1
+			cur.X = 1
 			lim := clamp(width-cur.X, cur.X, len(cells))
 			if lim < 0 {
 				lim = 0
@@ -56,8 +66,42 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 			}
 			cur.Y += 1
 			cur.X = 0
+			chunkIdx++
 		}
 	}
+
+	// for _, header := range doc {
+	// 	cells := buffer.NewCells(header.Text)
+	// 	lim := clamp(width, 0, len(cells))
+	// 	for _, cell := range cells[:lim] {
+	// 		cvs.SetCell(cur, cell.Rune, cell.Opts)
+	// 		cur.X += 1
+	// 	}
+
+	// 	cur.Y += 1
+	// 	cur.X = 0
+
+	// 	for i, chunk := range header.Chunks {
+	// 		color := cell.ColorWhite
+	// 		if uint(i) == selectedChunk {
+	// 			color = cell.ColorYellow
+	// 		}
+
+	// 		cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
+
+	// 		cur.X += 1
+	// 		lim := clamp(width-cur.X, cur.X, len(cells))
+	// 		if lim < 0 {
+	// 			lim = 0
+	// 		}
+	// 		for _, cell := range cells[:lim] {
+	// 			cvs.SetCell(cur, cell.Rune, cell.Opts)
+	// 			cur.X += 1
+	// 		}
+	// 		cur.Y += 1
+	// 		cur.X = 0
+	// 	}
+	// }
 	return nil
 }
 

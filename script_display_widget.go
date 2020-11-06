@@ -28,15 +28,7 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 		Y: 0,
 	}
 
-	var renderable []interface{}
-
-	for _, header := range doc {
-		renderable = append(renderable, header)
-		for _, chunk := range header.Chunks {
-			renderable = append(renderable, chunk)
-		}
-	}
-
+	renderable := doc.GetRenderable()
 	width := cvs.Area().Dx()
 	chunkIdx := 0
 	for _, r := range renderable {

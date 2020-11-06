@@ -99,3 +99,16 @@ func (d *Document) GetAllTakes() []Take {
 	}
 	return takes
 }
+
+func (d *Document) GetRenderable() []interface{} {
+	var renderable []interface{}
+
+	for _, header := range doc {
+		renderable = append(renderable, header)
+		for _, chunk := range header.Chunks {
+			renderable = append(renderable, chunk)
+		}
+	}
+
+	return renderable
+}
