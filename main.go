@@ -38,29 +38,48 @@ type keybind struct {
 	desc string
 }
 
-func getKeybinds() []keybind {
-	return []keybind{
-		{
-			key:  keyboard.KeyArrowDown,
-			desc: "Next Chunk",
-		},
-		{
-			key:  keyboard.KeyArrowUp,
-			desc: "Previous Chunk",
-		},
-		{
-			key:  ' ',
-			desc: "Start Take",
-		},
-		{
-			key:  'g',
-			desc: "Mark Good",
-		},
-		{
-			key:  'b',
-			desc: "Mark Bad",
-		},
+func getAvailableKeybinds() []keybind {
+	var keys []keybind
+	if !isRecordingTake {
+		keys = append(keys, []keybind{
+			{
+				key:  keyboard.KeyArrowDown,
+				desc: "Next Chunk",
+			},
+			{
+				key:  keyboard.KeyArrowUp,
+				desc: "Previous Chunk",
+			},
+			{
+				key:  ' ',
+				desc: "Start Take",
+			},
+			{
+				key:  'g',
+				desc: "Mark Good",
+			},
+			{
+				key:  'b',
+				desc: "Mark Bad",
+			},
+		}...)
+	} else {
+		keys = append(keys, []keybind{
+			{
+				key:  ' ',
+				desc: "End Take",
+			},
+			{
+				key:  'g',
+				desc: "End Take & Mark Good",
+			},
+			{
+				key:  'b',
+				desc: "End Take & Mark Bad",
+			},
+		}...)
 	}
+	return keys
 }
 
 func IgnoreValueFormatter(value float64) string {
@@ -146,7 +165,7 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 
 func updateControlsDisplay() {
 	controlsWidget.Reset()
-	keybinds := getKeybinds()
+	keybinds := getAvailableKeybinds()
 	for _, bind := range keybinds {
 		controlsWidget.Write(fmt.Sprintf("%s", bind.key), text.WriteCellOpts(cell.BgColor(cell.ColorWhite), cell.FgColor(cell.ColorBlack)))
 		controlsWidget.Write(fmt.Sprintf(" %s  ", bind.desc))
@@ -194,6 +213,8 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 	} else {
 		log.Printf("Unknown key pressed: %v", k)
 	}
+
+	updateControlsDisplay()
 }
 
 var terminal *termbox.Terminal
