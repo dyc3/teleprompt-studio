@@ -28,6 +28,7 @@ type AudioDisplayWidget struct {
 	stickToEnd      bool
 	selected        TimeSpan
 	selectionActive bool
+	dragging        bool
 	lastClickStart  image.Point
 
 	area         image.Rectangle
@@ -164,16 +165,22 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 		w.stickToEnd = !w.stickToEnd
 	} else if m.Button == mouse.ButtonLeft {
 		if w.selectionActive {
-			startPoint := mousePointToTimestampOffset(w.lastClickStart, w.area, w.window)
-			dragPoint := mousePointToTimestampOffset(m.Position, w.area, w.window)
-			if m.Position.X < w.lastClickStart.X {
-				w.selected.Start = dragPoint
-				w.selected.End = startPoint
+			if w.dragging {
+				startPoint := mousePointToTimestampOffset(w.lastClickStart, w.area, w.window)
+				dragPoint := mousePointToTimestampOffset(m.Position, w.area, w.window)
+				if m.Position.X < w.lastClickStart.X {
+					w.selected.Start = dragPoint
+					w.selected.End = startPoint
+				} else {
+					w.selected.End = dragPoint
+				}
 			} else {
-				w.selected.End = dragPoint
+				log.Printf("clearing selection")
+				w.selectionActive = false
 			}
-		} else {
+		} else if !w.dragging {
 			w.selectionActive = true
+			w.dragging = true
 			w.selected = TimeSpan{
 				Start: mousePointToTimestampOffset(m.Position, w.area, w.window),
 			}
@@ -184,14 +191,15 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 		w.window.Start -= w.window.Duration() / 10
 	} else if m.Button == mouse.ButtonWheelUp {
 		w.window.Start += w.window.Duration() / 10
-	}
-
-	if w.selectionActive && m.Button == mouse.ButtonRelease {
-		if m.Position == w.lastClickStart {
-			w.selectionActive = false
+	} else if m.Button == mouse.ButtonRelease {
+		if w.selectionActive && w.dragging {
+			w.dragging = false
+			if m.Position == w.lastClickStart {
+				w.selectionActive = false
+			}
+			// w.selected.End = mousePointToTimestampOffset(m.Position, w.area, w.window)
+			log.Printf("drag select end %s", w.selected.End)
 		}
-		w.selected.End = mousePointToTimestampOffset(m.Position, w.area, w.window)
-		log.Printf("drag select end %s", w.selected.End)
 	}
 
 	return nil
