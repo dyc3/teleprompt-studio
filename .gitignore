@@ -1,3 +1,4 @@
 *.exe
 teleprompt-studio
 debug.log
+sessions/

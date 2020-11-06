@@ -2,8 +2,15 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"os"
+	"path"
 	"time"
+
+	"github.com/go-audio/audio"
+
+	"github.com/go-audio/wav"
 
 	"github.com/gordonklaus/portaudio"
 	"github.com/zimmski/osutil"
@@ -126,5 +133,48 @@ func endTake() error {
 	chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 	chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
 	isRecordingTake = false
+	return nil
+}
+
+func (s *Session) Save() error {
+	err := os.Mkdir("sessions", 0755)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	num := 0
+	for {
+		_, err := os.Stat(path.Join("sessions", fmt.Sprintf("%d", num)))
+		if os.IsNotExist(err) {
+			break
+		}
+		num++
+	}
+
+	dir := path.Join("sessions", fmt.Sprintf("%d", num))
+	err = os.Mkdir(dir, 0755)
+	if err != nil {
+		return err
+	}
+	audioFile, err := os.Create(path.Join(dir, "audio.wav"))
+	if err != nil {
+		return err
+	}
+	defer audioFile.Close()
+
+	e := wav.NewEncoder(audioFile, sampleRate, 32, 1, 1)
+	defer e.Close()
+	buf := audio.IntBuffer{
+		Format:         audio.FormatMono44100,
+		SourceBitDepth: 32,
+	}
+	for _, sample := range s.Audio {
+		buf.Data = append(buf.Data, int(sample))
+	}
+	err = e.Write(&buf)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

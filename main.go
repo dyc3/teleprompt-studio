@@ -228,6 +228,12 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 			selectedTake = len(chunk.Takes) - 1
 			waveformWidget.Deselect()
 		}
+	} else if k.Key == 'r' {
+		EndSession()
+		err := currentSession.Save()
+		if err != nil {
+			log.Printf("Failed to save session: %s", err)
+		}
 	} else {
 		log.Printf("Unknown key pressed: %v", k)
 	}
