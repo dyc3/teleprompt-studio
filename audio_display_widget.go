@@ -8,6 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mum4k/termdash/cell"
+
+	"github.com/mum4k/termdash/mouse"
+
 	"github.com/mum4k/termdash/private/canvas"
 	"github.com/mum4k/termdash/private/canvas/braille"
 	"github.com/mum4k/termdash/private/canvas/buffer"
@@ -20,11 +24,13 @@ type AudioDisplayWidget struct {
 	mu sync.Mutex
 
 	// The time interval in which to display the waveform
-	window     TimeSpan
-	stickToEnd bool
+	window          TimeSpan
+	stickToEnd      bool
+	selected        TimeSpan
+	selectionActive bool
+	lastClickStart  image.Point
 
-	area image.Rectangle
-
+	area         image.Rectangle
 	waitingFrame int
 }
 
@@ -89,10 +95,16 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 		startY := valmap(int(samples[i-1]), math.MinInt32, math.MaxInt32, a.Dy(), 0)
 		endX := valmap(i, 0, len(samples), 0, a.Dx())
 		endY := valmap(int(samples[i]), math.MinInt32, math.MaxInt32, a.Dy(), 0)
+		color := cell.ColorWhite
+		if w.selectionActive {
+			if start+i >= durationToSamples(sampleRate, w.selected.Start) && start+i <= durationToSamples(sampleRate, w.selected.End) {
+				color = cell.ColorYellow
+			}
+		}
 		err := draw.BrailleLine(bc,
 			image.Point{startX, startY},
 			image.Point{endX, endY},
-			draw.BrailleLineCellOpts(),
+			draw.BrailleLineCellOpts(cell.FgColor(color)),
 		)
 		if err != nil {
 			log.Print(err)
@@ -113,8 +125,12 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 	x, y = w.area.Dx()-len(cells), w.area.Dy()-1
 	DrawCells(cvs, cells, x, y)
 
-	cells = buffer.NewCells(fmt.Sprintf("%v (%d) [%d:%d] %v", w.window, len(recordedAudio), start, end, w.area))
+	cells = buffer.NewCells(fmt.Sprintf("%v (%d) [%d:%d] %v", w.selected, len(recordedAudio), start, end, w.area))
 	x, y = (w.area.Dx()/2)-(len(cells)/2), 0
+	DrawCells(cvs, cells, x, y)
+
+	cells = buffer.NewCells(fmt.Sprintf("%d <= %d <= %d", durationToSamples(sampleRate, w.selected.Start), start, durationToSamples(sampleRate, w.selected.End)))
+	x, y = (w.area.Dx()/2)-(len(cells)/2), 1
 	DrawCells(cvs, cells, x, y)
 
 	return nil
@@ -131,6 +147,29 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	if m.Button == mouse.ButtonRight {
+		w.selectionActive = false
+	} else if m.Button == mouse.ButtonLeft {
+		if w.selectionActive {
+			w.selected.End = mousePointToTimestampOffset(m.Position, w.area, w.window)
+		} else {
+			w.selectionActive = true
+			w.selected = TimeSpan{
+				Start: mousePointToTimestampOffset(m.Position, w.area, w.window),
+			}
+			log.Printf("drag select start %s", w.selected.Start)
+			w.lastClickStart = m.Position
+		}
+	}
+
+	if w.selectionActive && m.Button == mouse.ButtonRelease {
+		if m.Position == w.lastClickStart {
+			w.selectionActive = false
+		}
+		w.selected.End = mousePointToTimestampOffset(m.Position, w.area, w.window)
+		log.Printf("drag select end %s", w.selected.End)
+	}
+
 	return nil
 }
 
@@ -138,9 +177,11 @@ func (w *AudioDisplayWidget) Options() widgetapi.Options {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	return widgetapi.Options{}
+	return widgetapi.Options{
+		WantMouse: widgetapi.MouseScopeWidget,
+	}
 }
 
 func mousePointToTimestampOffset(p image.Point, area image.Rectangle, window TimeSpan) time.Duration {
-	return window.Start + window.Duration()*time.Duration(float32(p.X)/float32(area.Dx()))
+	return window.Start + window.Duration()*time.Duration(p.X)/time.Duration(area.Dx())
 }
