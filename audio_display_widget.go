@@ -112,7 +112,13 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 		color := cell.ColorWhite
 		for _, t := range takes {
 			if start+cStart >= durationToSamples(sampleRate, t.Start) && start+cEnd <= durationToSamples(sampleRate, t.End) {
-				color = cell.ColorGreen
+				if t.Mark == Good {
+					color = cell.ColorGreen
+				} else if t.Mark == Bad {
+					color = cell.ColorRed
+				} else {
+					color = cell.ColorCyan
+				}
 			}
 		}
 		if w.selectionActive {
