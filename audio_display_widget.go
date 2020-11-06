@@ -89,21 +89,32 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 		return err
 	}
 
-	for i := 1; i < len(samples); i++ {
-		a := bc.Area()
-		startX := valmap(i-1, 0, len(samples), 0, a.Dx())
-		startY := valmap(int(samples[i-1]), math.MinInt32, math.MaxInt32, a.Dy(), 0)
-		endX := valmap(i, 0, len(samples), 0, a.Dx())
-		endY := valmap(int(samples[i]), math.MinInt32, math.MaxInt32, a.Dy(), 0)
+	chunk_length := len(samples) / bc.Area().Dx()
+	for x := 0; x < bc.Area().Dx(); x++ {
+		cStart, cEnd := x*chunk_length, (x+1)*chunk_length
+		chunk := samples[cStart:cEnd]
+		max, min := int32(0), int32(0)
+		for _, s := range chunk {
+			if s > max {
+				max = s
+			} else if s < min {
+				min = s
+			}
+		}
+
 		color := cell.ColorWhite
 		if w.selectionActive {
-			if start+i >= durationToSamples(sampleRate, w.selected.Start) && start+i <= durationToSamples(sampleRate, w.selected.End) {
+			if start+cStart >= durationToSamples(sampleRate, w.selected.Start) && start+cEnd <= durationToSamples(sampleRate, w.selected.End) {
 				color = cell.ColorYellow
 			}
 		}
+
+		maxY := valmap(int(max), math.MinInt32, math.MaxInt32, bc.Area().Dy(), 0)
+		minY := valmap(int(min), math.MinInt32, math.MaxInt32, bc.Area().Dy(), 0)
+
 		err := draw.BrailleLine(bc,
-			image.Point{startX, startY},
-			image.Point{endX, endY},
+			image.Point{x, maxY},
+			image.Point{x, minY},
 			draw.BrailleLineCellOpts(cell.FgColor(color)),
 		)
 		if err != nil {
@@ -149,6 +160,8 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 
 	if m.Button == mouse.ButtonRight {
 		w.selectionActive = false
+	} else if m.Button == mouse.ButtonMiddle {
+		w.stickToEnd = !w.stickToEnd
 	} else if m.Button == mouse.ButtonLeft {
 		if w.selectionActive {
 			w.selected.End = mousePointToTimestampOffset(m.Position, w.area, w.window)
