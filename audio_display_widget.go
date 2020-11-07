@@ -206,6 +206,9 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 		}
 	} else if m.Button == mouse.ButtonWheelDown {
 		w.window.Start -= w.window.Duration() / 10
+		if w.window.Start < 0 {
+			w.window.Start = 0
+		}
 	} else if m.Button == mouse.ButtonWheelUp {
 		w.window.Start += w.window.Duration() / 10
 	} else if m.Button == mouse.ButtonRelease {
