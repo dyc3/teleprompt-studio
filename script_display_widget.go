@@ -39,7 +39,7 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 			}
 			cur.X = 0
 			header := t
-			cells := buffer.NewCells(header.Text)
+			cells := buffer.NewCells(header.Text, cell.FgColor(cell.ColorRed))
 			lim := clamp(width, 0, len(cells))
 			for _, cell := range cells[:lim] {
 				cvs.SetCell(cur, cell.Rune, cell.Opts)
