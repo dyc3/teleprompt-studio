@@ -42,7 +42,7 @@ func initPortAudio() {
 }
 
 func record() {
-	const bufSize = 1024 * 8
+	const bufSize = 1024
 
 	if !portaudioInitialized {
 		initPortAudio()
@@ -66,6 +66,11 @@ func record() {
 	isRecording = true
 	log.Print("Recording started")
 	for {
+		// wait for enough audio to fill the buffer
+		for avail := 0; avail < len(in); avail, _ = stream.AvailableToRead() {
+			time.Sleep(time.Second / sampleRate * time.Duration(len(in)-avail))
+		}
+
 		err := stream.Read()
 		if err != nil {
 			log.Fatalf("Failed to read stream audio: %s", err)
@@ -117,7 +122,7 @@ func audioProcessor() {
 func playback() {
 	log.Printf("playing back %d samples...", len(currentSession.Audio))
 	// This is based on the play example shown in the portaudio repo.
-	const bufSize = 1024 * 8
+	const bufSize = 1024
 
 	if !portaudioInitialized {
 		initPortAudio()
