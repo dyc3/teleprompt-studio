@@ -38,6 +38,9 @@ func record() {
 		log.Fatalf("Failed to initialize recording: %s", err)
 	}
 	defer portaudio.Terminate()
+	// This is based on the record example shown in the portaudio repo.
+	// It's unclear whether or not framesPerBuffer should match the buffer size
+	// or be zero (where portaudio will provide variable length buffers).
 	in := make([]int32, bufSize)
 	stream, err := portaudio.OpenDefaultStream(1, 0, sampleRate, len(in), in)
 	if err != nil {
