@@ -31,9 +31,10 @@ func record() {
 	const bufSize = 1024
 
 	var err error
-	osutil.CaptureWithCGo(func() {
+	o, _ := osutil.CaptureWithCGo(func() {
 		err = portaudio.Initialize()
 	})
+	log.Printf(string(o))
 	if err != nil {
 		log.Fatalf("Failed to initialize recording: %s", err)
 	}
@@ -65,6 +66,7 @@ func record() {
 			break
 		}
 	}
+	log.Print("Recording stopped")
 }
 
 func StartSession() {
