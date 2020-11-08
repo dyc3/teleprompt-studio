@@ -27,9 +27,9 @@ type Session struct {
 	Doc   Document
 }
 
-func record() {
-	const bufSize = 1024
+var portaudioInitialized bool = false
 
+func initPortAudio() {
 	var err error
 	o, _ := osutil.CaptureWithCGo(func() {
 		err = portaudio.Initialize()
@@ -38,7 +38,16 @@ func record() {
 	if err != nil {
 		log.Fatalf("Failed to initialize recording: %s", err)
 	}
-	defer portaudio.Terminate()
+	portaudioInitialized = true
+}
+
+func record() {
+	const bufSize = 1024 * 8
+
+	if !portaudioInitialized {
+		initPortAudio()
+	}
+
 	// This is based on the record example shown in the portaudio repo.
 	// It's unclear whether or not framesPerBuffer should match the buffer size
 	// or be zero (where portaudio will provide variable length buffers).
@@ -102,6 +111,46 @@ func audioProcessor() {
 			chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
 		}
 	}
+}
+
+// Plays back the entire recording for the session, used for testing
+func playback() {
+	log.Printf("playing back %d samples...", len(currentSession.Audio))
+	// This is based on the play example shown in the portaudio repo.
+	const bufSize = 1024 * 8
+
+	if !portaudioInitialized {
+		initPortAudio()
+	}
+
+	out := make([]int32, bufSize)
+	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, len(out), &out)
+	if err != nil {
+		log.Fatalf("Failed to open stream audio: %s", err)
+	}
+	defer stream.Close()
+	log.Printf("stream open: %v", stream.Info())
+
+	err = stream.Start()
+	if err != nil {
+		log.Fatalf("Failed to start stream audio: %s", err)
+	}
+	defer stream.Stop()
+	log.Printf("stream started")
+
+	for b := 0; b < len(currentSession.Audio); b += len(out) {
+		if b+bufSize < len(currentSession.Audio) {
+			out = currentSession.Audio[b : b+bufSize]
+		} else {
+			break
+		}
+		err := stream.Write()
+		if err != nil {
+			log.Fatalf("Failed to write stream audio: %v", err)
+		}
+	}
+
+	log.Printf("playback complete")
 }
 
 func samplesToDuration(sampleRate int, nSamples int) time.Duration {

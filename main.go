@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/gordonklaus/portaudio"
 	"github.com/mum4k/termdash/cell"
 
 	"github.com/mum4k/termdash"
@@ -193,6 +194,7 @@ func updateControlsDisplay() {
 
 func globalKeyboardHandler(k *terminalapi.Keyboard) {
 	if k.Key == keyboard.KeyEsc || k.Key == keyboard.KeyCtrlC {
+		portaudio.Terminate()
 		terminal.Close()
 		cancelGlobal()
 	} else if k.Key == keyboard.KeyArrowUp {
@@ -244,6 +246,8 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 		if err != nil {
 			log.Print(err)
 		}
+	} else if k.Key == 'p' {
+		go playback()
 	} else {
 		log.Printf("Unknown key pressed: %v", k)
 	}
