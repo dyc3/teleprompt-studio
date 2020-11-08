@@ -229,10 +229,9 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 			waveformWidget.Deselect()
 		}
 	} else if k.Key == 'r' {
-		EndSession()
-		err := currentSession.Save()
+		err := EndSession()
 		if err != nil {
-			log.Printf("Failed to save session: %s", err)
+			log.Print(err)
 		}
 	} else {
 		log.Printf("Unknown key pressed: %v", k)

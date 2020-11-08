@@ -70,11 +70,16 @@ func StartSession() {
 	}
 }
 
-func EndSession() {
+func EndSession() error {
 	if isRecording {
 		isRecording = false
 	}
-	// TODO: save session
+	err := currentSession.Save()
+	if err != nil {
+		log.Printf("Failed to save session: %s", err)
+		return err
+	}
+	return nil
 }
 
 func audioProcessor() {
