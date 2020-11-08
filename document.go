@@ -66,6 +66,7 @@ func parseDoc(md string) Document {
 				h.Text = line
 			} else {
 				if c.Content != "" {
+					c.Content = strings.TrimSpace(c.Content)
 					h.Chunks = append(h.Chunks, c)
 				}
 				headers = append(headers, h)
@@ -80,14 +81,28 @@ func parseDoc(md string) Document {
 			if c.Content == "" {
 				continue
 			}
+			c.Content = strings.TrimSpace(c.Content)
 			h.Chunks = append(h.Chunks, c)
 			c = Chunk{}
 			continue
 		}
+		line = strings.TrimSpace(line)
 		if c.Content != "" {
-			c.Content += " "
+			if strings.HasPrefix(line, "```") {
+				c.Content += "\n"
+			} else {
+				switch line[0] {
+				case '-':
+					c.Content += "\n"
+				default:
+					c.Content += " "
+				}
+			}
 		}
 		c.Content += line
+		if line == "```" {
+			c.Content += "\n"
+		}
 	}
 	h.Chunks = append(h.Chunks, c)
 	headers = append(headers, h)
