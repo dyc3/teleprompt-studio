@@ -13,6 +13,18 @@ const (
 	Bad      TakeMark = 2
 )
 
+func (m TakeMark) String() string {
+	switch m {
+	case Unmarked:
+		return "unmarked"
+	case Good:
+		return "good"
+	case Bad:
+		return "bad"
+	}
+	return "unknown"
+}
+
 type Document []Header
 
 func (doc *Document) CountChunks() int {

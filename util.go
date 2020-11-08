@@ -22,6 +22,7 @@ func valmap(x, in_min, in_max, out_min, out_max int) int {
 	return (x-in_min)*(out_max-out_min)/(in_max-in_min) + out_min
 }
 
+// TODO: alias time.Duration to our own type, and make this the String() function for that type
 func Timestamp(t *time.Duration) string {
 	return fmt.Sprintf("%02d:%02d:%02d.%03d", int32(t.Hours()), int32(t.Minutes())%60, int32(t.Seconds())%60, t.Milliseconds()%1000)
 }

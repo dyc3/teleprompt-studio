@@ -184,5 +184,29 @@ func (s *Session) Save() error {
 		return err
 	}
 
+	takesFile, err := os.Create(path.Join(dir, "takes.csv"))
+	if err != nil {
+		return err
+	}
+	_, err = takesFile.WriteString("header,chunk_index,chunk_text,take_index,take_mark,take_start,take_end\n")
+	if err != nil {
+		log.Print("Failed to write takes header")
+		return err
+	}
+	for _, header := range currentSession.Doc {
+		for c, chunk := range header.Chunks {
+			for t, take := range chunk.Takes {
+				line := fmt.Sprintf("%s,%d,%s...,%d,%s,%s,%s\n", header.Text, c, chunk.Content[:clamp(32, 0, len(chunk.Content))], t, take.Mark, Timestamp(&take.Start), Timestamp(&take.End))
+				_, err = takesFile.WriteString(line)
+				if err != nil {
+					log.Print("Failed to write takes header")
+					return err
+				}
+			}
+		}
+	}
+
+	log.Printf("Current session successfully saved: %s", dir)
+
 	return nil
 }
