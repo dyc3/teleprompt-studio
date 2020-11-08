@@ -26,11 +26,15 @@ var selectedChunk uint
 var selectedTake int
 var isRecordingTake bool
 
-var scriptWidget *ScriptDisplayWidget
-var waveformWidget *AudioDisplayWidget
-var chunksWidget *ChunkListWidget
-var controlsWidget *text.Text
-var takesWidget *TakeListWidget
+type widgets struct {
+	script   *ScriptDisplayWidget
+	audio    *AudioDisplayWidget
+	chunks   *ChunkListWidget
+	controls *text.Text
+	takes    *TakeListWidget
+}
+
+var ui widgets
 
 type keybind struct {
 	key  keyboard.Key
@@ -63,7 +67,7 @@ func getAvailableKeybinds() []keybind {
 			},
 		}...)
 
-		if waveformWidget.selectionActive {
+		if ui.audio.selectionActive {
 			keys = append(keys,
 				keybind{
 					key:  't',
@@ -100,26 +104,33 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 		log.Fatal(err)
 	}
 
-	scriptWidget = &ScriptDisplayWidget{}
+	scriptWidget := &ScriptDisplayWidget{}
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	waveformWidget = &AudioDisplayWidget{}
+	waveformWidget := &AudioDisplayWidget{}
 	waveformWidget.stickToEnd = true
 	go waveformWidget.animateWaiting()
 
-	chunksWidget = &ChunkListWidget{}
+	chunksWidget := &ChunkListWidget{}
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	controlsWidget, err = text.New()
+	controlsWidget, err := text.New()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	takesWidget = &TakeListWidget{}
+	takesWidget := &TakeListWidget{}
+	ui = widgets{
+		script:   scriptWidget,
+		audio:    waveformWidget,
+		chunks:   chunksWidget,
+		controls: controlsWidget,
+		takes:    takesWidget,
+	}
 
 	builder := grid.New()
 	builder.Add(
@@ -172,11 +183,11 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 }
 
 func updateControlsDisplay() {
-	controlsWidget.Reset()
+	ui.controls.Reset()
 	keybinds := getAvailableKeybinds()
 	for _, bind := range keybinds {
-		controlsWidget.Write(fmt.Sprintf("%s", bind.key), text.WriteCellOpts(cell.BgColor(cell.ColorWhite), cell.FgColor(cell.ColorBlack)))
-		controlsWidget.Write(fmt.Sprintf(" %s  ", bind.desc))
+		ui.controls.Write(fmt.Sprintf("%s", bind.key), text.WriteCellOpts(cell.BgColor(cell.ColorWhite), cell.FgColor(cell.ColorBlack)))
+		ui.controls.Write(fmt.Sprintf(" %s  ", bind.desc))
 	}
 }
 
@@ -219,14 +230,14 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 			endTake()
 		}
 	} else if k.Key == 't' {
-		if waveformWidget.selectionActive {
+		if ui.audio.selectionActive {
 			chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 			take := Take{}
-			take.Start = waveformWidget.selected.Start
-			take.End = waveformWidget.selected.End
+			take.Start = ui.audio.selected.Start
+			take.End = ui.audio.selected.End
 			chunk.Takes = append(chunk.Takes, take)
 			selectedTake = len(chunk.Takes) - 1
-			waveformWidget.Deselect()
+			ui.audio.Deselect()
 		}
 	} else if k.Key == 'r' {
 		err := EndSession()
