@@ -172,14 +172,13 @@ func (s *Session) Save() error {
 
 	e := wav.NewEncoder(audioFile, sampleRate, 32, 1, 1)
 	defer e.Close()
-	buf := audio.IntBuffer{
+	buf := audio.PCMBuffer{
 		Format:         audio.FormatMono44100,
+		DataType:       audio.DataTypeI32,
 		SourceBitDepth: 32,
+		I32:            s.Audio,
 	}
-	for _, sample := range s.Audio {
-		buf.Data = append(buf.Data, int(sample))
-	}
-	err = e.Write(&buf)
+	err = e.Write(buf.AsIntBuffer())
 	if err != nil {
 		return err
 	}
@@ -188,6 +187,7 @@ func (s *Session) Save() error {
 	if err != nil {
 		return err
 	}
+	defer takesFile.Close()
 	_, err = takesFile.WriteString("header,chunk_index,chunk_text,take_index,take_mark,take_start,take_end\n")
 	if err != nil {
 		log.Print("Failed to write takes header")
