@@ -19,7 +19,7 @@ import (
 const sampleRate = 44100
 
 var isRecording bool = false
-var audioStream chan []int32 = make(chan []int32)
+var audioStream chan []int32 = make(chan []int32, 10)
 var currentSession Session
 
 type Session struct {
@@ -87,6 +87,9 @@ func audioProcessor() {
 	const displayBufferSize = sampleRate
 	for {
 		buffer := <-audioStream
+		if cap(audioStream)-len(audioStream) < 3 {
+			log.Printf("WARNING: audioStream channel is being overloaded, buffered messages: %d/%d", len(audioStream), cap(audioStream))
+		}
 		currentSession.Audio = append(currentSession.Audio, buffer...)
 
 		if isRecordingTake {
