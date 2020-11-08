@@ -72,6 +72,9 @@ func parseDoc(md string) Document {
 			c = Chunk{}
 			continue
 		}
+		if c.Content != "" {
+			c.Content += " "
+		}
 		c.Content += line
 	}
 	h.Chunks = append(h.Chunks, c)

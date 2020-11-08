@@ -91,4 +91,17 @@ chunk 2`
 	if doc[1].Chunks[1].Content != "chunk 2" {
 		t.Errorf("Incorrect chunk content: %s", doc[1].Chunks[1].Content)
 	}
+
+	md = `line A
+line B`
+	doc = parseDoc(md)
+	if len(doc) != 1 {
+		t.Errorf("Incorrect number of headers extracted: %d", len(doc))
+	}
+	if len(doc[0].Chunks) != 1 {
+		t.Errorf("Incorrect number of chunks extracted: %d", len(doc[0].Chunks))
+	}
+	if doc[0].Chunks[0].Content != "line A line B" {
+		t.Errorf("Incorrect chunk content: %s", doc[0].Chunks[0].Content)
+	}
 }
