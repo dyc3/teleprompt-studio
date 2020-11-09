@@ -118,7 +118,6 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 
 	waveformWidget := &AudioDisplayWidget{}
 	waveformWidget.stickToEnd = true
-	waveformWidget.showDebug = true
 	go waveformWidget.animateWaiting()
 
 	chunksWidget := &ChunkListWidget{}
@@ -256,6 +255,8 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 		go playbackTake(take)
 	} else if k.Key == 'f' {
 		ui.audio.stickToEnd = !ui.audio.stickToEnd
+	} else if k.Key == keyboard.KeyCtrlD {
+		ui.audio.showDebug = !ui.audio.showDebug
 	} else {
 		log.Printf("Unknown key pressed: %v", k)
 	}
