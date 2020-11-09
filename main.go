@@ -54,7 +54,7 @@ func getAvailableKeybinds() []keybind {
 				desc: "Previous Chunk",
 			},
 			{
-				key:  ' ',
+				key:  't',
 				desc: "Start Take",
 			},
 			{
@@ -74,7 +74,7 @@ func getAvailableKeybinds() []keybind {
 		if ui.audio.selectionActive {
 			keys = append(keys,
 				keybind{
-					key:  't',
+					key:  keyboard.KeyCtrlT,
 					desc: "New Take from selection",
 				},
 			)
@@ -82,7 +82,7 @@ func getAvailableKeybinds() []keybind {
 	} else {
 		keys = append(keys, []keybind{
 			{
-				key:  ' ',
+				key:  't',
 				desc: "End Take",
 			},
 			{
@@ -219,7 +219,7 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 		}
 		chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 		selectedTake = len(chunk.Takes) - 1
-	} else if k.Key == ' ' {
+	} else if k.Key == 't' {
 		if !isRecordingTake {
 			startTake()
 		} else {
@@ -235,7 +235,7 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 		if isRecordingTake {
 			endTake()
 		}
-	} else if k.Key == 't' {
+	} else if k.Key == keyboard.KeyCtrlT {
 		if ui.audio.selectionActive {
 			chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 			take := Take{}
