@@ -225,12 +225,19 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 			w.lastClickStart = m.Position
 		}
 	} else if m.Button == mouse.ButtonWheelDown {
-		w.window.Start -= w.window.Duration() / 10
+		x := w.window.Duration() / 10
+		w.window.Start -= x
+		w.window.End += x
 		if w.window.Start < 0 {
 			w.window.Start = 0
 		}
+		if w.window.End > samplesToDuration(sampleRate, len(currentSession.Audio)) {
+			w.window.End = samplesToDuration(sampleRate, len(currentSession.Audio))
+		}
 	} else if m.Button == mouse.ButtonWheelUp {
-		w.window.Start += w.window.Duration() / 10
+		x := w.window.Duration() / 10
+		w.window.Start += x
+		w.window.End -= x
 	} else if m.Button == mouse.ButtonRelease {
 		if w.selectionActive && w.dragging {
 			w.dragging = false
