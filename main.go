@@ -112,6 +112,7 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 
 	waveformWidget := &AudioDisplayWidget{}
 	waveformWidget.stickToEnd = true
+	waveformWidget.showDebug = true
 	go waveformWidget.animateWaiting()
 
 	chunksWidget := &ChunkListWidget{}

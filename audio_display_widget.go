@@ -30,6 +30,7 @@ type AudioDisplayWidget struct {
 	selectionActive bool
 	dragging        bool
 	lastClickStart  image.Point
+	showDebug       bool
 
 	area         image.Rectangle
 	waitingFrame int
@@ -154,13 +155,34 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 	x, y = w.area.Dx()-len(cells), w.area.Dy()-1
 	DrawCells(cvs, cells, x, y)
 
-	cells = buffer.NewCells(fmt.Sprintf("%v (%d) [%d:%d] %v", w.selected, len(currentSession.Audio), start, end, w.area))
-	x, y = (w.area.Dx()/2)-(len(cells)/2), 0
-	DrawCells(cvs, cells, x, y)
+	if w.showDebug {
+		cells = buffer.NewCells(fmt.Sprintf("%v (%d) [%d:%d] %v", w.selected, len(currentSession.Audio), start, end, w.area))
+		x, y = (w.area.Dx()/2)-(len(cells)/2), 0
+		DrawCells(cvs, cells, x, y)
 
-	cells = buffer.NewCells(fmt.Sprintf("%d <= %d <= %d", durationToSamples(sampleRate, w.selected.Start), start, durationToSamples(sampleRate, w.selected.End)))
-	x, y = (w.area.Dx()/2)-(len(cells)/2), 1
-	DrawCells(cvs, cells, x, y)
+		cells = buffer.NewCells(fmt.Sprintf("%d <= %d <= %d", durationToSamples(sampleRate, w.selected.Start), start, durationToSamples(sampleRate, w.selected.End)))
+		x, y = (w.area.Dx()/2)-(len(cells)/2), 1
+		DrawCells(cvs, cells, x, y)
+
+		cells = buffer.NewCells(fmt.Sprintf("%v", samplesToDuration(sampleRate, playbackPosition)))
+		x, y = (w.area.Dx()/2)-(len(cells)/2), 2
+		DrawCells(cvs, cells, x, y)
+	}
+
+	if isPlaying {
+		playbackMarkerX := -1
+		chunk_length := len(samples) / cvs.Area().Dx()
+		for x := 0; x < cvs.Area().Dx(); x++ {
+			cStart, cEnd := start+(x*chunk_length), start+((x+1)*chunk_length)
+			if cStart <= playbackPosition && playbackPosition <= cEnd {
+				playbackMarkerX = x
+			}
+		}
+		cvs.SetAreaCellOpts(
+			image.Rect(playbackMarkerX, 0, playbackMarkerX+1, cvs.Area().Dy()),
+			cell.BgColor(cell.ColorBlue),
+		)
+	}
 
 	return nil
 }

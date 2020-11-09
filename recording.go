@@ -21,6 +21,10 @@ const sampleRate = 44100
 var isRecording bool = false
 var audioStream chan []int32 = make(chan []int32, 10)
 var currentSession Session
+var isPlaying bool = false
+
+// Playback position in samples
+var playbackPosition int = 0
 
 type Session struct {
 	Audio []int32
@@ -118,47 +122,8 @@ func audioProcessor() {
 	}
 }
 
-// Plays back the entire recording for the session, used for testing
-func playback() {
-	log.Printf("playing back %d samples...", len(currentSession.Audio))
-	// This is based on the play example shown in the portaudio repo.
-	const bufSize = 1024
-
-	if !portaudioInitialized {
-		initPortAudio()
-	}
-
-	out := make([]int32, bufSize)
-	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, len(out), &out)
-	if err != nil {
-		log.Fatalf("Failed to open stream audio: %s", err)
-	}
-	defer stream.Close()
-	log.Printf("stream open: %v", stream.Info())
-
-	err = stream.Start()
-	if err != nil {
-		log.Fatalf("Failed to start stream audio: %s", err)
-	}
-	defer stream.Stop()
-	log.Printf("stream started")
-
-	for b := 0; b < len(currentSession.Audio); b += len(out) {
-		if b+bufSize < len(currentSession.Audio) {
-			out = currentSession.Audio[b : b+bufSize]
-		} else {
-			break
-		}
-		err := stream.Write()
-		if err != nil {
-			log.Fatalf("Failed to write stream audio: %v", err)
-		}
-	}
-
-	log.Printf("playback complete")
-}
-
 func playbackTimespan(timespan TimeSpan) {
+	isPlaying = true
 	log.Printf("playing back %d samples...", len(currentSession.Audio))
 	// This is based on the play example shown in the portaudio repo.
 	const bufSize = 1024
@@ -182,8 +147,11 @@ func playbackTimespan(timespan TimeSpan) {
 	defer stream.Stop()
 	log.Printf("stream started")
 
-	samples := currentSession.Audio[durationToSamples(sampleRate, timespan.Start):durationToSamples(sampleRate, timespan.End)]
+	start := durationToSamples(sampleRate, timespan.Start)
+	end := durationToSamples(sampleRate, timespan.End)
+	samples := currentSession.Audio[start:end]
 	for b := 0; b < len(samples); b += len(out) {
+		playbackPosition = start + b
 		out = samples[b:clamp(b+bufSize, 0, len(samples))]
 		err := stream.Write()
 		if err != nil {
@@ -192,6 +160,7 @@ func playbackTimespan(timespan TimeSpan) {
 	}
 
 	log.Printf("playback complete")
+	isPlaying = false
 }
 
 func playbackTake(take Take) {
