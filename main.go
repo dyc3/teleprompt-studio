@@ -13,7 +13,6 @@ import (
 
 	"github.com/mum4k/termdash"
 	"github.com/mum4k/termdash/container"
-	"github.com/mum4k/termdash/container/grid"
 	"github.com/mum4k/termdash/keyboard"
 	"github.com/mum4k/termdash/linestyle"
 	"github.com/mum4k/termdash/terminal/termbox"
@@ -110,18 +109,12 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 	}
 
 	scriptWidget := &ScriptDisplayWidget{}
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	waveformWidget := &AudioDisplayWidget{}
 	waveformWidget.stickToEnd = true
 	go waveformWidget.animateWaiting()
 
 	chunksWidget := &ChunkListWidget{}
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	controlsWidget, err := text.New()
 	if err != nil {
@@ -137,50 +130,51 @@ func buildLayout(t *termbox.Terminal) *container.Container {
 		takes:    takesWidget,
 	}
 
-	builder := grid.New()
-	builder.Add(
-		grid.ColWidthPerc(80,
-			grid.RowHeightPerc(50,
-				grid.Widget(scriptWidget,
-					container.Border(linestyle.Light),
-					container.BorderTitle("Script"),
+	layout := []container.Option{
+		container.SplitVertical(
+			container.Left(
+				container.SplitHorizontal(
+					container.Top(
+						container.Border(linestyle.Light),
+						container.BorderTitle("Script"),
+						container.PlaceWidget(ui.script),
+					),
+					container.Bottom(
+						container.SplitHorizontal(
+							container.Top(
+								container.PlaceWidget(ui.controls),
+							),
+							container.Bottom(
+								container.Border(linestyle.Light),
+								container.BorderTitle("Audio"),
+								container.PlaceWidget(ui.audio),
+							),
+							container.SplitFixed(3),
+						),
+					),
+					container.SplitPercent(50),
 				),
 			),
-			grid.RowHeightPerc(40,
-				grid.Widget(waveformWidget,
-					container.Border(linestyle.Light),
-					container.BorderTitle("Audio"),
+			container.Right(
+				container.SplitHorizontal(
+					container.Top(
+						container.Border(linestyle.Light),
+						container.BorderTitle("Chunks"),
+						container.PlaceWidget(ui.chunks),
+					),
+					container.Bottom(
+						container.Border(linestyle.Light),
+						container.BorderTitle("Takes"),
+						container.PlaceWidget(ui.takes),
+					),
+					container.SplitPercent(50),
 				),
 			),
-			grid.RowHeightFixed(3,
-				grid.Widget(controlsWidget),
-			),
+			container.SplitPercent(80),
 		),
-	)
-
-	builder.Add(
-		grid.ColWidthPerc(20,
-			grid.RowHeightPerc(50,
-				grid.Widget(chunksWidget,
-					container.Border(linestyle.Light),
-					container.BorderTitle("Chunks"),
-				),
-			),
-			grid.RowHeightPerc(50,
-				grid.Widget(takesWidget,
-					container.Border(linestyle.Light),
-					container.BorderTitle("Takes"),
-				),
-			),
-		),
-	)
-
-	gridOpts, err := builder.Build()
-	if err != nil {
-		log.Fatal(err)
 	}
 
-	if err := root.Update(ROOTID, gridOpts...); err != nil {
+	if err := root.Update(ROOTID, layout...); err != nil {
 		log.Fatal(err)
 	}
 
