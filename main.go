@@ -66,6 +66,10 @@ func getAvailableKeybinds() []keybind {
 				key:  'b',
 				desc: "Mark Bad",
 			},
+			{
+				key:  'p',
+				desc: "Play Selected Take",
+			},
 		}...)
 
 		if ui.audio.selectionActive {
@@ -247,7 +251,8 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 			log.Print(err)
 		}
 	} else if k.Key == 'p' {
-		go playback()
+		take := currentSession.Doc.GetChunk(int(selectedChunk)).Takes[selectedTake]
+		go playbackTake(take)
 	} else {
 		log.Printf("Unknown key pressed: %v", k)
 	}

@@ -158,6 +158,49 @@ func playback() {
 	log.Printf("playback complete")
 }
 
+func playbackTimespan(timespan TimeSpan) {
+	log.Printf("playing back %d samples...", len(currentSession.Audio))
+	// This is based on the play example shown in the portaudio repo.
+	const bufSize = 1024
+
+	if !portaudioInitialized {
+		initPortAudio()
+	}
+
+	out := make([]int32, bufSize)
+	stream, err := portaudio.OpenDefaultStream(0, 1, sampleRate, len(out), &out)
+	if err != nil {
+		log.Fatalf("Failed to open stream audio: %s", err)
+	}
+	defer stream.Close()
+	log.Printf("stream open: %v", stream.Info())
+
+	err = stream.Start()
+	if err != nil {
+		log.Fatalf("Failed to start stream audio: %s", err)
+	}
+	defer stream.Stop()
+	log.Printf("stream started")
+
+	samples := currentSession.Audio[durationToSamples(sampleRate, timespan.Start):durationToSamples(sampleRate, timespan.End)]
+	for b := 0; b < len(samples); b += len(out) {
+		out = samples[b:clamp(b+bufSize, 0, len(samples))]
+		err := stream.Write()
+		if err != nil {
+			log.Fatalf("Failed to write stream audio: %v", err)
+		}
+	}
+
+	log.Printf("playback complete")
+}
+
+func playbackTake(take Take) {
+	playbackTimespan(TimeSpan{
+		Start: take.Start,
+		End:   take.End,
+	})
+}
+
 func samplesToDuration(sampleRate int, nSamples int) time.Duration {
 	return time.Duration(nSamples) * time.Second / time.Duration(sampleRate)
 }
