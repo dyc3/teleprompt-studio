@@ -155,6 +155,26 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 	x, y = w.area.Dx()-len(cells), w.area.Dy()-1
 	DrawCells(cvs, cells, x, y)
 
+	d := samplesToDuration(sampleRate, len(currentSession.Audio))
+	cells = buffer.NewCells(fmt.Sprintf("Recorded: %s", Timestamp(&d)))
+	x, y = 0, 0
+	DrawCells(cvs, cells, x, y)
+
+	lowerMidY := w.area.Dy() / 4 * 3
+	if isPlaying {
+		d := samplesToDuration(sampleRate, playbackPosition)
+		cells = buffer.NewCells(fmt.Sprintf("%s", Timestamp(&d)))
+		x, y = (w.area.Dx()/2)-(len(cells)/2), lowerMidY
+		DrawCells(cvs, cells, x, y)
+	}
+
+	if w.selectionActive {
+		d := w.selected.Duration()
+		cells = buffer.NewCells(fmt.Sprintf("%s", Timestamp(&d)))
+		x, y = (w.area.Dx()/2)-(len(cells)/2), lowerMidY+1
+		DrawCells(cvs, cells, x, y)
+	}
+
 	if w.showDebug {
 		cells = buffer.NewCells(fmt.Sprintf("%v (%d) [%d:%d] %v", w.selected, len(currentSession.Audio), start, end, w.area))
 		x, y = (w.area.Dx()/2)-(len(cells)/2), 0
@@ -162,10 +182,6 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 
 		cells = buffer.NewCells(fmt.Sprintf("%d <= %d <= %d", durationToSamples(sampleRate, w.selected.Start), start, durationToSamples(sampleRate, w.selected.End)))
 		x, y = (w.area.Dx()/2)-(len(cells)/2), 1
-		DrawCells(cvs, cells, x, y)
-
-		cells = buffer.NewCells(fmt.Sprintf("%v", samplesToDuration(sampleRate, playbackPosition)))
-		x, y = (w.area.Dx()/2)-(len(cells)/2), 2
 		DrawCells(cvs, cells, x, y)
 	}
 
