@@ -238,6 +238,23 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 		x := w.window.Duration() / 10
 		w.window.Start += x
 		w.window.End -= x
+	} else if m.Button == mouse.ButtonMiddle {
+		if !w.dragging {
+			w.dragging = true
+			w.lastClickStart = m.Position
+		}
+
+		if w.lastClickStart.X != m.Position.X {
+			diff := clamp(m.Position.X-w.lastClickStart.X, -1, 1)
+			pixel_length := w.window.Duration() / time.Duration(w.area.Dx())
+			time_diff := -time.Duration(diff) * pixel_length
+			if w.window.Start+time_diff > 0 && w.window.End+time_diff < samplesToDuration(sampleRate, len(currentSession.Audio)) {
+				w.window.Start += time_diff
+				w.window.End += time_diff
+			}
+			w.lastClickStart = m.Position
+		}
+
 	} else if m.Button == mouse.ButtonRelease {
 		if w.selectionActive && w.dragging {
 			w.dragging = false
@@ -246,6 +263,8 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 			}
 			// w.selected.End = mousePointToTimestampOffset(m.Position, w.area, w.window)
 			log.Printf("drag select end %s", w.selected.End)
+		} else if w.dragging {
+			w.dragging = false
 		}
 	}
 
