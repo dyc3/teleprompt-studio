@@ -95,6 +95,12 @@ func getAvailableKeybinds() []keybind {
 			},
 		}...)
 	}
+	keys = append(keys, []keybind{
+		{
+			key:  'f',
+			desc: "Toggle Stick Viewport To End",
+		},
+	}...)
 	return keys
 }
 
@@ -248,6 +254,8 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 	} else if k.Key == 'p' {
 		take := currentSession.Doc.GetChunk(int(selectedChunk)).Takes[selectedTake]
 		go playbackTake(take)
+	} else if k.Key == 'f' {
+		ui.audio.stickToEnd = !ui.audio.stickToEnd
 	} else {
 		log.Printf("Unknown key pressed: %v", k)
 	}

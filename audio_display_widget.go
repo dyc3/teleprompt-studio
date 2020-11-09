@@ -200,8 +200,6 @@ func (w *AudioDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 
 	if m.Button == mouse.ButtonRight {
 		w.selectionActive = false
-	} else if m.Button == mouse.ButtonMiddle {
-		w.stickToEnd = !w.stickToEnd
 	} else if m.Button == mouse.ButtonLeft {
 		if w.selectionActive {
 			if w.dragging {
