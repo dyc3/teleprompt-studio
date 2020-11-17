@@ -36,7 +36,11 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 			}
 			cur.X = 0
 			header := t
-			cells := buffer.NewCells(header.Text)
+			cells := buffer.NewCells(
+				header.Text,
+				cell.FgColor(cell.ColorNumber(33)),
+				// cell.Bold(),
+			)
 			lim := clamp(width, 0, len(cells))
 			for _, cell := range cells[:lim] {
 				cvs.SetCell(cur, cell.Rune, cell.Opts)
@@ -51,7 +55,7 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 			chunk := t
 			color := cell.ColorWhite
 			if uint(chunkIdx) == selectedChunk {
-				color = cell.ColorYellow
+				color = SELECT_COLOR
 			}
 			cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
 
@@ -69,39 +73,6 @@ func (w *ChunkListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 			chunkIdx++
 		}
 	}
-
-	// for _, header := range doc {
-	// 	cells := buffer.NewCells(header.Text)
-	// 	lim := clamp(width, 0, len(cells))
-	// 	for _, cell := range cells[:lim] {
-	// 		cvs.SetCell(cur, cell.Rune, cell.Opts)
-	// 		cur.X += 1
-	// 	}
-
-	// 	cur.Y += 1
-	// 	cur.X = 0
-
-	// 	for i, chunk := range header.Chunks {
-	// 		color := cell.ColorWhite
-	// 		if uint(i) == selectedChunk {
-	// 			color = cell.ColorYellow
-	// 		}
-
-	// 		cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
-
-	// 		cur.X += 1
-	// 		lim := clamp(width-cur.X, cur.X, len(cells))
-	// 		if lim < 0 {
-	// 			lim = 0
-	// 		}
-	// 		for _, cell := range cells[:lim] {
-	// 			cvs.SetCell(cur, cell.Rune, cell.Opts)
-	// 			cur.X += 1
-	// 		}
-	// 		cur.Y += 1
-	// 		cur.X = 0
-	// 	}
-	// }
 	return nil
 }
 

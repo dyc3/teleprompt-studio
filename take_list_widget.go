@@ -33,17 +33,17 @@ func (w *TakeListWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
 		symbolRune := ' '
 
 		if Take.Mark == Good {
-			color = cell.ColorGreen
+			color = GOOD_COLOR
 			symbolRune = '✓'
 		} else if Take.Mark == Bad {
-			color = cell.ColorRed
+			color = BAD_COLOR
 			symbolRune = '✗'
 		}
 
 		symbol := buffer.NewCell(symbolRune, cell.FgColor(color))
 
 		if i == selectedTake {
-			color = cell.ColorYellow
+			color = SELECT_COLOR
 		}
 
 		cells := buffer.NewCells(fmt.Sprintf("Take %d", i), cell.FgColor(color))

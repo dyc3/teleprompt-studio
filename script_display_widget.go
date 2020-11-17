@@ -39,7 +39,11 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 			}
 			cur.X = 0
 			header := t
-			cells := buffer.NewCells(header.Text, cell.FgColor(cell.ColorRed))
+			cells := buffer.NewCells(
+				header.Text,
+				cell.FgColor(cell.ColorNumber(33)),
+				// cell.Bold(),
+			)
 			lim := clamp(width, 0, len(cells))
 			for _, cell := range cells[:lim] {
 				cvs.SetCell(cur, cell.Rune, cell.Opts)
@@ -55,7 +59,7 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 			chunk := t
 			color := cell.ColorWhite
 			if uint(chunkIdx) == selectedChunk {
-				color = cell.ColorYellow
+				color = SELECT_COLOR
 			}
 			if len(chunk.Content) == 0 {
 				continue

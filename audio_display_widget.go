@@ -114,17 +114,17 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 		for _, t := range takes {
 			if start+cStart >= durationToSamples(sampleRate, t.Start) && start+cEnd <= durationToSamples(sampleRate, t.End) {
 				if t.Mark == Good {
-					color = cell.ColorGreen
+					color = GOOD_COLOR
 				} else if t.Mark == Bad {
-					color = cell.ColorRed
+					color = BAD_COLOR
 				} else {
-					color = cell.ColorCyan
+					color = cell.ColorNumber(33)
 				}
 			}
 		}
 		if w.selectionActive {
 			if start+cStart >= durationToSamples(sampleRate, w.selected.Start) && start+cEnd <= durationToSamples(sampleRate, w.selected.End) {
-				color = cell.ColorYellow
+				color = SELECT_COLOR
 			}
 		}
 
@@ -196,7 +196,7 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 		}
 		cvs.SetAreaCellOpts(
 			image.Rect(playbackMarkerX, 0, playbackMarkerX+1, cvs.Area().Dy()),
-			cell.BgColor(cell.ColorBlue),
+			cell.BgColor(cell.ColorNumber(56)),
 		)
 	}
 

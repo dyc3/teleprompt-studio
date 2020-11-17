@@ -22,6 +22,10 @@ import (
 
 const ROOTID = "root"
 
+var SELECT_COLOR = cell.ColorNumber(220)
+var BAD_COLOR = cell.ColorNumber(160)
+var GOOD_COLOR = cell.ColorNumber(40)
+
 var selectedChunk uint
 var selectedTake int
 var isRecordingTake bool
@@ -54,7 +58,7 @@ func getAvailableKeybinds() []keybind {
 				desc: "Previous Chunk",
 			},
 			{
-				key:  't',
+				key:  ' ',
 				desc: "Start Take",
 			},
 			{
@@ -74,7 +78,7 @@ func getAvailableKeybinds() []keybind {
 		if ui.audio.selectionActive {
 			keys = append(keys,
 				keybind{
-					key:  keyboard.KeyCtrlT,
+					key:  't',
 					desc: "New Take from selection",
 				},
 			)
@@ -82,7 +86,7 @@ func getAvailableKeybinds() []keybind {
 	} else {
 		keys = append(keys, []keybind{
 			{
-				key:  't',
+				key:  ' ',
 				desc: "End Take",
 			},
 			{
@@ -191,7 +195,11 @@ func updateControlsDisplay() {
 	ui.controls.Reset()
 	keybinds := getAvailableKeybinds()
 	for _, bind := range keybinds {
-		ui.controls.Write(fmt.Sprintf("%s", bind.key), text.WriteCellOpts(cell.BgColor(cell.ColorWhite), cell.FgColor(cell.ColorBlack)))
+		ui.controls.Write(fmt.Sprintf("%s", bind.key), text.WriteCellOpts(
+			cell.BgColor(cell.ColorWhite),
+			cell.FgColor(cell.ColorBlack),
+			// cell.Inverse()
+		))
 		ui.controls.Write(fmt.Sprintf(" %s  ", bind.desc))
 	}
 }
@@ -219,7 +227,7 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 		}
 		chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 		selectedTake = len(chunk.Takes) - 1
-	} else if k.Key == 't' {
+	} else if k.Key == ' ' {
 		if !isRecordingTake {
 			startTake()
 		} else {
@@ -235,7 +243,7 @@ func globalKeyboardHandler(k *terminalapi.Keyboard) {
 		if isRecordingTake {
 			endTake()
 		}
-	} else if k.Key == keyboard.KeyCtrlT {
+	} else if k.Key == 't' {
 		if ui.audio.selectionActive {
 			chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 			take := Take{}
