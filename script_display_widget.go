@@ -42,7 +42,7 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 			cells := buffer.NewCells(
 				header.Text,
 				cell.FgColor(cell.ColorNumber(33)),
-				// cell.Bold(),
+				cell.Bold(),
 			)
 			lim := clamp(width, 0, len(cells))
 			for _, cell := range cells[:lim] {

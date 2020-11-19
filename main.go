@@ -213,9 +213,7 @@ func updateControlsDisplay() {
 	keybinds := getAvailableKeybinds()
 	for _, bind := range keybinds {
 		ui.controls.Write(fmt.Sprintf("%s", bind.key), text.WriteCellOpts(
-			cell.BgColor(cell.ColorWhite),
-			cell.FgColor(cell.ColorBlack),
-			// cell.Inverse()
+			cell.Inverse(),
 		))
 		ui.controls.Write(fmt.Sprintf(" %s  ", bind.desc))
 	}
