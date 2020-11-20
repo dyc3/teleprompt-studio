@@ -31,6 +31,7 @@ type AudioDisplayWidget struct {
 	dragging        bool
 	lastClickStart  image.Point
 	showDebug       bool
+	recordStart     time.Time
 
 	area         image.Rectangle
 	waitingFrame int
@@ -44,6 +45,7 @@ func (w *AudioDisplayWidget) animateWaiting() {
 		}
 		time.Sleep(300 * time.Millisecond)
 	}
+	w.recordStart = time.Now()
 }
 
 var waitingAnimation = []rune("▞▚")
@@ -159,6 +161,27 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 	cells = buffer.NewCells(fmt.Sprintf("Recorded: %s", Timestamp(&d)))
 	x, y = 0, 0
 	DrawCells(cvs, cells, x, y)
+
+	if w.showDebug {
+		real := time.Now().Sub(w.recordStart)
+		cells = buffer.NewCells(fmt.Sprintf("Real time: %s", Timestamp(&real)))
+		x, y = 0, 1
+		DrawCells(cvs, cells, x, y)
+
+		diff := real - d
+		var opts []cell.Option
+		if diff > time.Second {
+			opts = append(opts, cell.FgColor(BAD_COLOR))
+		} else if diff > 500*time.Millisecond {
+			opts = append(opts, cell.FgColor(cell.ColorYellow))
+		}
+		cells = buffer.NewCells(
+			fmt.Sprintf("Diff: %s", Timestamp(&diff)),
+			opts...,
+		)
+		x, y = 0, 2
+		DrawCells(cvs, cells, x, y)
+	}
 
 	lowerMidY := w.area.Dy() / 4 * 3
 	if isPlaying {
