@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gordonklaus/portaudio"
@@ -300,6 +302,31 @@ func globalMouseHandler(m *terminalapi.Mouse) {
 	updateControlsDisplay()
 }
 
+func printRecordedSessions() {
+	if _, err := os.Stat("sessions"); os.IsNotExist(err) {
+		fmt.Print("sessions folder does not exist in current directory.")
+		return
+	}
+	var availableSessions []string
+	err := filepath.Walk("sessions", func(path string, info os.FileInfo, err error) error {
+		spl := strings.Split(path, string(os.PathSeparator))
+		if len(spl) <= 1 {
+			return nil
+		}
+		session_name := spl[1]
+		if info.IsDir() && !contains(availableSessions, session_name) {
+			availableSessions = append(availableSessions, session_name)
+		}
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range availableSessions {
+		fmt.Println(file)
+	}
+}
+
 var terminal *termbox.Terminal
 var ctxGlobal context.Context
 var cancelGlobal context.CancelFunc
@@ -311,7 +338,13 @@ func main() {
 	}
 	log.SetOutput(f)
 	scriptFile := flag.String("script", "", "Path to the markdown file to use as input.")
+	listSessions := flag.Bool("list", false, "List sessions you've recorded. Requires `sessions` folder to be present in your current directory.")
 	flag.Parse()
+
+	if *listSessions {
+		printRecordedSessions()
+		os.Exit(0)
+	}
 
 	terminal, err = termbox.New(termbox.ColorMode(terminalapi.ColorMode256))
 	if err != nil {
