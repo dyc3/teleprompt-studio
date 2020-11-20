@@ -72,7 +72,7 @@ func record() {
 	for {
 		// wait for enough audio to fill the buffer
 		for avail := 0; avail < len(in); avail, _ = stream.AvailableToRead() {
-			time.Sleep(time.Second / sampleRate * time.Duration(len(in)-avail))
+			time.Sleep(time.Second / sampleRate * time.Duration(len(in)-avail) / 2)
 		}
 
 		err := stream.Read()
