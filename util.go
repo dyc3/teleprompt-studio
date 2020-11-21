@@ -5,6 +5,8 @@ import (
 	"image"
 	"time"
 
+	"github.com/mum4k/termdash/cell"
+
 	"github.com/mum4k/termdash/private/canvas"
 	"github.com/mum4k/termdash/private/canvas/buffer"
 )
@@ -50,7 +52,14 @@ func markdownFontModifiers(cells []*buffer.Cell) []*buffer.Cell {
 	mode := 0
 	stars := 0
 	for _, c := range cells {
-		if c.Rune == '*' {
+		if c.Rune == '`' {
+			if mode == 0 {
+				mode = 3
+			} else {
+				mode = 0
+			}
+			continue
+		} else if c.Rune == '*' {
 			stars++
 			continue
 		} else {
@@ -66,6 +75,9 @@ func markdownFontModifiers(cells []*buffer.Cell) []*buffer.Cell {
 			c.Opts.Italic = true
 		} else if mode == 2 {
 			c.Opts.Bold = true
+		} else if mode == 3 {
+			c.Opts.Bold = true
+			c.Opts.FgColor = cell.ColorNumber(57)
 		}
 
 		mdcells = append(mdcells, c)
