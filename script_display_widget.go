@@ -64,7 +64,9 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 			if len(chunk.Content) == 0 {
 				continue
 			}
-			wr, err := wrap.Cells(buffer.NewCells(chunk.Content, cell.FgColor(color)), width, wrap.AtWords)
+			cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
+			cells = markdownFontModifiers(cells)
+			wr, err := wrap.Cells(cells, width, wrap.AtWords)
 			if err != nil {
 				log.Printf("failed to word wrap chunk content: %s", err)
 			}

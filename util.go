@@ -44,3 +44,31 @@ func contains(s []string, e string) bool {
 	}
 	return false
 }
+
+func markdownFontModifiers(cells []*buffer.Cell) []*buffer.Cell {
+	var mdcells []*buffer.Cell
+	mode := 0
+	stars := 0
+	for _, c := range cells {
+		if c.Rune == '*' {
+			stars++
+			continue
+		} else {
+			if mode == 0 {
+				mode = stars
+			} else if stars == mode {
+				mode = 0
+			}
+			stars = 0
+		}
+
+		if mode == 1 {
+			c.Opts.Italic = true
+		} else if mode == 2 {
+			c.Opts.Bold = true
+		}
+
+		mdcells = append(mdcells, c)
+	}
+	return mdcells
+}

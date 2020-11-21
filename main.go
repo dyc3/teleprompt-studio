@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mum4k/termdash/terminal/tcell"
+
 	"github.com/gordonklaus/portaudio"
 	"github.com/mum4k/termdash/cell"
 
@@ -17,7 +19,6 @@ import (
 	"github.com/mum4k/termdash/container"
 	"github.com/mum4k/termdash/keyboard"
 	"github.com/mum4k/termdash/linestyle"
-	"github.com/mum4k/termdash/terminal/termbox"
 	"github.com/mum4k/termdash/terminal/terminalapi"
 	"github.com/mum4k/termdash/widgets/text"
 )
@@ -131,7 +132,7 @@ func IgnoreValueFormatter(value float64) string {
 	return ""
 }
 
-func buildLayout(t *termbox.Terminal) *container.Container {
+func buildLayout(t *tcell.Terminal) *container.Container {
 	root, err := container.New(t, container.ID(ROOTID))
 	if err != nil {
 		log.Fatal(err)
@@ -327,7 +328,7 @@ func printRecordedSessions() {
 	}
 }
 
-var terminal *termbox.Terminal
+var terminal *tcell.Terminal
 var ctxGlobal context.Context
 var cancelGlobal context.CancelFunc
 
@@ -346,7 +347,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	terminal, err = termbox.New(termbox.ColorMode(terminalapi.ColorMode256))
+	terminal, err = tcell.New(tcell.ColorMode(terminalapi.ColorMode256))
 	if err != nil {
 		log.Fatal(err)
 	}
