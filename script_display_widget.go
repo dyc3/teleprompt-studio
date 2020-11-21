@@ -38,7 +38,7 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 	chunkPos := map[int]cellmeta{}
 
 	renderable := currentSession.Doc.GetRenderable()
-	width := cvs.Area().Dx()
+	width := cvs.Area().Dx() - 2
 	chunkIdx := 0
 	expandBuffer := func() {
 		for cur.Y >= len(b) {
@@ -112,11 +112,31 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 	}
 
 	m := chunkPos[int(selectedChunk)]
-	offsetY := clamp(m.y-(cvs.Area().Dy()/2)+(m.height/2), 0, len(b)-cvs.Area().Dy())
+	absY := (cvs.Area().Dy() / 2) + (m.height / 2)
+	offsetY := clamp(m.y-absY, 0, len(b)-cvs.Area().Dy())
 	c := image.Point{}
 	cut := b[offsetY : offsetY+cvs.Area().Dy()]
+	cvs.SetCell(image.Point{X: 0, Y: m.y - offsetY}, '>', cell.FgColor(SELECT_COLOR))
+
+	if m.height > 1 {
+		for i := 0; i < m.height; i++ {
+			var r rune
+			switch i {
+			case 0:
+				r = '┌'
+			case m.height - 1:
+				r = '└'
+			default:
+				r = '│'
+			}
+			cvs.SetCell(image.Point{X: 1, Y: m.y + i - offsetY}, r, cell.FgColor(SELECT_COLOR))
+		}
+	} else {
+		cvs.SetCell(image.Point{X: 1, Y: m.y - offsetY}, '═', cell.FgColor(SELECT_COLOR))
+	}
+
 	for _, line := range cut {
-		c.X = 0
+		c.X = 2
 		for _, cell := range line {
 			_, err := cvs.SetCell(c, cell.Rune, cell.Opts)
 			if err != nil {
