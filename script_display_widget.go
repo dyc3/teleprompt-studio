@@ -28,15 +28,37 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 		Y: 0,
 	}
 
+	var b [][]*buffer.Cell
+
+	// cell y positions and heights of chunks
+	type cellmeta struct {
+		y      int
+		height int
+	}
+	chunkPos := map[int]cellmeta{}
+
 	renderable := currentSession.Doc.GetRenderable()
 	width := cvs.Area().Dx()
 	chunkIdx := 0
+	expandBuffer := func() {
+		for cur.Y >= len(b) {
+			row := make([]*buffer.Cell, width)
+			for i := range row {
+				row[i] = &buffer.Cell{
+					Rune: ' ',
+					Opts: cell.NewOptions(),
+				}
+			}
+			b = append(b, row)
+		}
+		// log.Printf("expanded to: %d", len(b))
+	}
+
 	for _, r := range renderable {
+		expandBuffer()
+
 		switch t := r.(type) {
 		case Header:
-			if uint(chunkIdx) < selectedChunk {
-				continue
-			}
 			cur.X = 0
 			header := t
 			cells := buffer.NewCells(
@@ -46,16 +68,12 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 			)
 			lim := clamp(width, 0, len(cells))
 			for _, cell := range cells[:lim] {
-				cvs.SetCell(cur, cell.Rune, cell.Opts)
+				b[cur.Y][cur.X] = cell
 				cur.X += 1
 			}
 			cur.Y += 1
 			cur.X = 0
 		case Chunk:
-			if uint(chunkIdx) < selectedChunk {
-				chunkIdx++
-				continue
-			}
 			chunk := t
 			color := cell.ColorWhite
 			if uint(chunkIdx) == selectedChunk {
@@ -71,10 +89,16 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 				log.Printf("failed to word wrap chunk content: %s", err)
 			}
 
+			meta := cellmeta{
+				y:      cur.Y,
+				height: len(wr),
+			}
+			chunkPos[chunkIdx] = meta
 			for _, line := range wr {
+				expandBuffer()
 				cur.X = 0
 				for _, cell := range line {
-					cvs.SetCell(cur, cell.Rune, cell.Opts)
+					b[cur.Y][cur.X] = cell
 					cur.X += 1
 				}
 				cur.Y += 1
@@ -86,6 +110,23 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 			log.Printf("Unknown type %T", t)
 		}
 	}
+
+	m := chunkPos[int(selectedChunk)]
+	offsetY := clamp(m.y-(cvs.Area().Dy()/2)+(m.height/2), 0, len(b)-cvs.Area().Dy())
+	c := image.Point{}
+	cut := b[offsetY : offsetY+cvs.Area().Dy()]
+	for _, line := range cut {
+		c.X = 0
+		for _, cell := range line {
+			_, err := cvs.SetCell(c, cell.Rune, cell.Opts)
+			if err != nil {
+				log.Print(err)
+			}
+			c.X += 1
+		}
+		c.Y += 1
+	}
+
 	return nil
 }
 
