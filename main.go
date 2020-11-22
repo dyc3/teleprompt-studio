@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime/debug"
 	"strings"
 	"time"
 
@@ -343,12 +342,12 @@ func main() {
 	listSessions := flag.Bool("list", false, "List sessions you've recorded. Requires `sessions` folder to be present in your current directory.")
 	flag.Parse()
 
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("Panic: %v", r)
-			log.Printf("Stacktrace: %s", string(debug.Stack()))
-		}
-	}()
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		log.Printf("Panic: %v", r)
+	// 		log.Printf("Stacktrace: %s", string(debug.Stack()))
+	// 	}
+	// }()
 
 	if *listSessions {
 		printRecordedSessions()

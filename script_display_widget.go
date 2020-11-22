@@ -20,6 +20,7 @@ type ScriptDisplayWidget struct {
 }
 
 func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
+	panic("test")
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
