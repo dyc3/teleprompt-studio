@@ -48,10 +48,6 @@ func initPortAudio() {
 func record() {
 	const bufSize = 1024
 
-	if !portaudioInitialized {
-		initPortAudio()
-	}
-
 	// This is based on the record example shown in the portaudio repo.
 	// It's unclear whether or not framesPerBuffer should match the buffer size
 	// or be zero (where portaudio will provide variable length buffers).

@@ -355,6 +355,9 @@ func main() {
 		os.Exit(0)
 	}
 
+	fmt.Println("Initializing...")
+	initPortAudio()
+
 	terminal, err = tcell.New(tcell.ColorMode(terminalapi.ColorMode256))
 	if err != nil {
 		log.Fatal(err)
