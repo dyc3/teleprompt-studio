@@ -112,7 +112,7 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 	}
 
 	m := chunkPos[int(selectedChunk)]
-	absY := (cvs.Area().Dy() / 2) + (m.height / 2)
+	absY := (cvs.Area().Dy() / 2) - (m.height / 2)
 	offsetY := clamp(m.y-absY, 0, len(b)-cvs.Area().Dy())
 	c := image.Point{}
 	cut := b[offsetY : offsetY+cvs.Area().Dy()]
