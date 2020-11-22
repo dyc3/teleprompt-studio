@@ -86,12 +86,12 @@ func parseDoc(md string) Document {
 			c = Chunk{}
 			continue
 		}
-		line = strings.TrimSpace(line)
+		trimmed := strings.TrimSpace(line)
 		if c.Content != "" {
 			if strings.HasPrefix(line, "```") {
 				c.Content += "\n"
 			} else {
-				switch line[0] {
+				switch trimmed[0] {
 				case '-':
 					c.Content += "\n"
 				default:
