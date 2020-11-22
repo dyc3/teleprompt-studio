@@ -19,26 +19,23 @@ type ScriptDisplayWidget struct {
 	mu sync.Mutex
 }
 
-func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+// cell y positions and heights of chunks
+type cellmeta struct {
+	y      int
+	height int
+}
+
+func scriptRenderBuffer(width int) ([][]*buffer.Cell, map[int]cellmeta) {
+	var b [][]*buffer.Cell
 
 	cur := image.Point{
 		X: 0,
 		Y: 0,
 	}
 
-	var b [][]*buffer.Cell
-
-	// cell y positions and heights of chunks
-	type cellmeta struct {
-		y      int
-		height int
-	}
 	chunkPos := map[int]cellmeta{}
 
 	renderable := currentSession.Doc.GetRenderable()
-	width := cvs.Area().Dx() - 2
 	chunkIdx := 0
 	expandBuffer := func() {
 		for cur.Y >= len(b) {
@@ -110,6 +107,16 @@ func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) err
 			log.Printf("Unknown type %T", t)
 		}
 	}
+
+	return b, chunkPos
+}
+
+func (w *ScriptDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	width := cvs.Area().Dx() - 2
+	b, chunkPos := scriptRenderBuffer(width)
 
 	m := chunkPos[int(selectedChunk)]
 	absY := (cvs.Area().Dy() / 2) - (m.height / 2)
