@@ -29,6 +29,7 @@ const ROOTID = "root"
 var SELECT_COLOR = cell.ColorNumber(220)
 var BAD_COLOR = cell.ColorNumber(160)
 var GOOD_COLOR = cell.ColorNumber(40)
+var METADATA_COLOR = cell.ColorNumber(247)
 
 var selectedChunk uint
 var selectedTake int

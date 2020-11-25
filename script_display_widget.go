@@ -103,6 +103,29 @@ func scriptRenderBuffer(width int) ([][]*buffer.Cell, map[int]cellmeta) {
 			cur.Y += 1
 
 			chunkIdx++
+		case MetaChunk:
+			chunk := t
+			if len(chunk.Content) == 0 {
+				continue
+			}
+			color := METADATA_COLOR
+			cells := buffer.NewCells(chunk.Content, cell.FgColor(color))
+			cells = markdownFontModifiers(cells)
+			wr, err := wrap.Cells(cells, width, wrap.AtWords)
+			if err != nil {
+				log.Printf("failed to word wrap chunk content: %s", err)
+			}
+
+			for _, line := range wr {
+				expandBuffer()
+				cur.X = 0
+				for _, cell := range line {
+					b[cur.Y][cur.X] = cell
+					cur.X += 1
+				}
+				cur.Y += 1
+			}
+			cur.Y += 1
 		default:
 			log.Printf("Unknown type %T", t)
 		}

@@ -92,6 +92,15 @@ func (h *Header) AddChunk(chunk interface{}) error {
 	return nil
 }
 
+func isMeta(line string) bool {
+	for _, prefix := range getMetaPrefixes() {
+		if strings.HasPrefix(line, prefix+":") {
+			return true
+		}
+	}
+	return false
+}
+
 func parseDoc(md string) Document {
 	headers := []Header{}
 	lines := strings.Split(md, "\n")
@@ -105,15 +114,7 @@ func parseDoc(md string) Document {
 			return
 		}
 
-		isMeta := false
-		for _, prefix := range getMetaPrefixes() {
-			if strings.HasPrefix(text, prefix+":") {
-				isMeta = true
-				break
-			}
-		}
-
-		if isMeta {
+		if isMeta(text) {
 			h.AddChunk(MetaChunk{
 				Content: text,
 			})
@@ -152,6 +153,8 @@ func parseDoc(md string) Document {
 		trimmed := strings.TrimSpace(line)
 		if text != "" {
 			if strings.HasPrefix(line, "```") {
+				text += "\n"
+			} else if isMeta(line) {
 				text += "\n"
 			} else {
 				switch trimmed[0] {
