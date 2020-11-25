@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestParseDoc(t *testing.T) {
 	t.Run("1 header, 2 chunks", func(t *testing.T) {
@@ -157,4 +160,28 @@ line B`
 			t.Errorf("Incorrect chunk content: %s", doc[0].Chunks[0].Content)
 		}
 	})
+}
+
+func TestDocRenderable(t *testing.T) {
+	doc := Document{
+		Header{
+			Chunks: []Chunk{
+				Chunk{Content: "a"},
+			},
+			MetaChunks: []MetaChunk{
+				MetaChunk{Content: "b"},
+			},
+			chunkOrder: []chunkOrder{chunk_normal, chunk_meta},
+		},
+	}
+	expect := []interface{}{
+		doc[0],
+		Chunk{Content: "a"},
+		MetaChunk{Content: "b"},
+	}
+
+	renderable := doc.GetRenderable()
+	if !reflect.DeepEqual(renderable, expect) {
+		t.Errorf("Renderable doc does not match expected: %v != %v", renderable, expect)
+	}
 }
