@@ -4,14 +4,20 @@ import (
 	"errors"
 	"io/ioutil"
 	"strings"
+	"time"
 )
 
 type TakeMark uint8
 
 const (
 	Unmarked TakeMark = 0
-	Good     TakeMark = 1
-	Bad      TakeMark = 2
+	// Denotes a good take.
+	Good TakeMark = 1
+	// Denotes a bad take.
+	Bad TakeMark = 2
+	// Used to denote a timespan where an audio sync peak, usually created with a clap or clapperboard, can be found.
+	// There can be multiple Sync takes, but only the first one will be used to determine the sync offset.
+	Sync TakeMark = 3
 )
 
 // Metadata prefixes used in scripts. They should be omited from selectable chunks.
@@ -27,22 +33,29 @@ func (m TakeMark) String() string {
 		return "good"
 	case Bad:
 		return "bad"
+	case Sync:
+		return "sync"
 	}
 	return "unknown"
 }
 
-type Document []Header
+type Document struct {
+	headers   []Header
+	syncTakes []Take
+	// Presice timestamp of the audio sync peak
+	SyncOffset time.Duration
+}
 
 func (doc *Document) CountChunks() int {
 	c := 0
-	for _, h := range *doc {
+	for _, h := range doc.headers {
 		c += len(h.Chunks)
 	}
 	return c
 }
 
 func (doc *Document) GetChunk(index int) *Chunk {
-	for _, h := range *doc {
+	for _, h := range doc.headers {
 		if index-len(h.Chunks) < 0 {
 			return &h.Chunks[index]
 		}
@@ -172,7 +185,9 @@ func parseDoc(md string) Document {
 	}
 	doAddChunk()
 	headers = append(headers, h)
-	return headers
+	return Document{
+		headers: headers,
+	}
 }
 
 func readScript(path string) error {
@@ -188,7 +203,8 @@ func readScript(path string) error {
 
 func (d *Document) GetAllTakes() []Take {
 	var takes []Take
-	for _, h := range *d {
+	takes = append(takes, d.syncTakes...)
+	for _, h := range d.headers {
 		for _, c := range h.Chunks {
 			takes = append(takes, c.Takes...)
 		}
@@ -199,7 +215,7 @@ func (d *Document) GetAllTakes() []Take {
 func (d *Document) GetRenderable() []interface{} {
 	var renderable []interface{}
 
-	for _, header := range *d {
+	for _, header := range d.headers {
 		renderable = append(renderable, header)
 		idxs := map[chunkOrder]int{
 			chunk_normal: 0,

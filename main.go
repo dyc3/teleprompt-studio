@@ -30,10 +30,13 @@ var SELECT_COLOR = cell.ColorNumber(220)
 var BAD_COLOR = cell.ColorNumber(160)
 var GOOD_COLOR = cell.ColorNumber(40)
 var METADATA_COLOR = cell.ColorNumber(247)
+var SYNC_COLOR = cell.ColorNumber(33)
+var SYNC_OFFSET_COLOR = cell.ColorNumber(226)
 
 var selectedChunk uint
 var selectedTake int
 var isRecordingTake bool
+var isRecordingSyncTake bool
 
 type widgets struct {
 	script   *ScriptDisplayWidget

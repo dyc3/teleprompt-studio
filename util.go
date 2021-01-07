@@ -84,3 +84,15 @@ func markdownFontModifiers(cells []*buffer.Cell) []*buffer.Cell {
 	}
 	return mdcells
 }
+
+func indexOfMaxInt32(arr []int32) int {
+	var idx int
+	var m int32
+	for i, e := range arr {
+		if i == 0 || e > m {
+			idx = i
+			m = e
+		}
+	}
+	return idx
+}

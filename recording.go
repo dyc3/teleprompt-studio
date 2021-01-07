@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -29,6 +30,21 @@ var playbackPosition int = 0
 type Session struct {
 	Audio []int32
 	Doc   Document
+}
+
+func (s *Session) ExtractAudio(timespan TimeSpan) []int32 {
+	startIdx := durationToSamples(sampleRate, timespan.Start)
+	endIdx := durationToSamples(sampleRate, timespan.End)
+	return s.Audio[startIdx:endIdx]
+}
+
+func (s *Session) updateSyncOffset() {
+	// take the audio from the first sync take, find peak, set Doc.syncOffset
+	t := s.Doc.syncTakes[0].TimeSpan
+	a := s.ExtractAudio(t)
+	peakIdx := indexOfMaxInt32(a)
+	relOffset := samplesToDuration(sampleRate, peakIdx)
+	s.Doc.SyncOffset = t.Start + relOffset
 }
 
 var portaudioInitialized bool = false
@@ -112,8 +128,12 @@ func audioProcessor() {
 		currentSession.Audio = append(currentSession.Audio, buffer...)
 
 		if isRecordingTake {
-			chunk := currentSession.Doc.GetChunk(int(selectedChunk))
-			chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
+			if isRecordingSyncTake {
+				currentSession.Doc.syncTakes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
+			} else {
+				chunk := currentSession.Doc.GetChunk(int(selectedChunk))
+				chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
+			}
 		}
 	}
 }
@@ -188,15 +208,22 @@ type Take struct {
 	Mark TakeMark
 }
 
-func startTake() error {
+func startTake(sync bool) error {
 	if isRecordingTake {
 		return errors.New("Already recording take")
 	}
-	chunk := currentSession.Doc.GetChunk(int(selectedChunk))
 	take := Take{}
 	take.Start = samplesToDuration(sampleRate, len(currentSession.Audio))
-	chunk.Takes = append(chunk.Takes, take)
-	selectedTake = len(chunk.Takes) - 1
+	if sync {
+		take.Mark = Sync
+		currentSession.Doc.syncTakes = append(currentSession.Doc.syncTakes, take)
+		selectedTake = len(currentSession.Doc.syncTakes) - 1
+		isRecordingSyncTake = true
+	} else {
+		chunk := currentSession.Doc.GetChunk(int(selectedChunk))
+		chunk.Takes = append(chunk.Takes, take)
+		selectedTake = len(chunk.Takes) - 1
+	}
 	isRecordingTake = true
 	return nil
 }
@@ -205,8 +232,16 @@ func endTake() error {
 	if !isRecordingTake {
 		return errors.New("Not recording take")
 	}
-	chunk := currentSession.Doc.GetChunk(int(selectedChunk))
-	chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
+	if isRecordingSyncTake {
+		currentSession.Doc.syncTakes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
+		isRecordingSyncTake = false
+		if currentSession.Doc.SyncOffset == time.Duration(0) {
+			currentSession.updateSyncOffset()
+		}
+	} else {
+		chunk := currentSession.Doc.GetChunk(int(selectedChunk))
+		chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
+	}
 	isRecordingTake = false
 	return nil
 }
@@ -250,8 +285,30 @@ func (s *Session) Save() error {
 		return err
 	}
 
+	// save metadata
+	sessionMetadata, err := json.Marshal(
+		struct {
+			SyncOffset string `json:"SyncOffset"`
+		}{
+			Timestamp(&currentSession.Doc.SyncOffset),
+		},
+	)
+	if err != nil {
+		log.Print("Failed to marshal session metadata")
+		return err
+	}
+	metadataFile, err := os.Create(path.Join(dir, "metadata.json"))
+	if err != nil {
+		log.Print("Failed to create metadata file")
+		return err
+	}
+	defer metadataFile.Close()
+	metadataFile.Write(sessionMetadata)
+
+	// save takes
 	takesFile, err := os.Create(path.Join(dir, "takes.csv"))
 	if err != nil {
+		log.Print("Failed to create takes file")
 		return err
 	}
 	defer takesFile.Close()
@@ -260,10 +317,13 @@ func (s *Session) Save() error {
 		log.Print("Failed to write takes header")
 		return err
 	}
-	for _, header := range currentSession.Doc {
+	syncOffset := currentSession.Doc.SyncOffset
+	for _, header := range currentSession.Doc.headers {
 		for c, chunk := range header.Chunks {
 			for t, take := range chunk.Takes {
-				line := fmt.Sprintf("%s,%d,%s...,%d,%s,%s,%s\n", header.Text, c, chunk.Content[:clamp(32, 0, len(chunk.Content))], t, take.Mark, Timestamp(&take.Start), Timestamp(&take.End))
+				syncedStart := take.Start - syncOffset
+				syncedEnd := take.End - syncOffset
+				line := fmt.Sprintf("%s,%d,%s...,%d,%s,%s,%s\n", header.Text, c, chunk.Content[:clamp(32, 0, len(chunk.Content))], t, take.Mark, Timestamp(&syncedStart), Timestamp(&syncedEnd))
 				_, err = takesFile.WriteString(line)
 				if err != nil {
 					log.Print("Failed to write takes header")

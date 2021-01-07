@@ -12,7 +12,7 @@ func TestParseDoc(t *testing.T) {
 chunk 1
 
 chunk 2`
-		doc := parseDoc(md)
+		doc := parseDoc(md).headers
 		if len(doc) != 1 {
 			t.Errorf("Incorrect number of headers extracted: %d", len(doc))
 		}
@@ -43,7 +43,7 @@ chunk A2
 chunk B2
 
 chunk C2`
-		doc := parseDoc(md)
+		doc := parseDoc(md).headers
 		if len(doc) != 2 {
 			t.Errorf("Incorrect number of headers extracted: %d", len(doc))
 		}
@@ -83,7 +83,7 @@ chunk C2`
 chunk 1
 
 chunk 2`
-		doc := parseDoc(md)
+		doc := parseDoc(md).headers
 		if len(doc) != 2 {
 			t.Errorf("Incorrect number of headers extracted: %d", len(doc))
 		}
@@ -108,7 +108,7 @@ chunk 2`
 		t.Parallel()
 		md := `line A
 line B`
-		doc := parseDoc(md)
+		doc := parseDoc(md).headers
 		if len(doc) != 1 {
 			t.Errorf("Incorrect number of headers extracted: %d", len(doc))
 		}
@@ -125,7 +125,7 @@ line B`
 		md := `# Test
 - item 1
 - item 2`
-		doc := parseDoc(md)
+		doc := parseDoc(md).headers
 		if len(doc) != 1 {
 			t.Errorf("Incorrect number of headers extracted: %d", len(doc))
 		}
@@ -146,7 +146,7 @@ line B`
 - item 1
   - subitem 1
 - item 2`
-		doc := parseDoc(md)
+		doc := parseDoc(md).headers
 		if len(doc) != 1 {
 			t.Errorf("Incorrect number of headers extracted: %d", len(doc))
 		}
@@ -164,18 +164,20 @@ line B`
 
 func TestDocRenderable(t *testing.T) {
 	doc := Document{
-		Header{
-			Chunks: []Chunk{
-				Chunk{Content: "a"},
+		headers: []Header{
+			Header{
+				Chunks: []Chunk{
+					Chunk{Content: "a"},
+				},
+				MetaChunks: []MetaChunk{
+					MetaChunk{Content: "b"},
+				},
+				chunkOrder: []chunkOrder{chunk_normal, chunk_meta},
 			},
-			MetaChunks: []MetaChunk{
-				MetaChunk{Content: "b"},
-			},
-			chunkOrder: []chunkOrder{chunk_normal, chunk_meta},
 		},
 	}
 	expect := []interface{}{
-		doc[0],
+		doc.headers[0],
 		Chunk{Content: "a"},
 		MetaChunk{Content: "b"},
 	}

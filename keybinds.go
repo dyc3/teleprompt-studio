@@ -29,7 +29,12 @@ func getAvailableKeybinds() []keybind {
 			{
 				key:      ' ',
 				desc:     "Start Take",
-				callback: func() { startTake() },
+				callback: func() { startTake(false) },
+			},
+			{
+				key:      's',
+				desc:     "Start Sync Take",
+				callback: func() { startTake(true) },
 			},
 			{
 				key:      'g',

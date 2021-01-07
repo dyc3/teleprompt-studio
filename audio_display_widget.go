@@ -119,6 +119,8 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 					color = GOOD_COLOR
 				} else if t.Mark == Bad {
 					color = BAD_COLOR
+				} else if t.Mark == Sync {
+					color = SYNC_COLOR
 				} else {
 					color = cell.ColorNumber(33)
 				}
@@ -223,6 +225,21 @@ func (w *AudioDisplayWidget) Draw(cvs *canvas.Canvas, meta *widgetapi.Meta) erro
 		)
 	}
 
+	if currentSession.Doc.SyncOffset >= w.window.Start && currentSession.Doc.SyncOffset <= w.window.End {
+		syncOffsetX := timestampOffsetToX(currentSession.Doc.SyncOffset, w.area, w.window)
+
+		if w.showDebug {
+			cells = buffer.NewCells(fmt.Sprintf("sync offset: %v (x=%d)", currentSession.Doc.SyncOffset, syncOffsetX))
+			x, y = (w.area.Dx()/2)-(len(cells)/2), 2
+			DrawCells(cvs, cells, x, y)
+		}
+
+		cvs.SetAreaCellOpts(
+			image.Rect(syncOffsetX, 2, syncOffsetX+1, cvs.Area().Dy()-4),
+			cell.BgColor(SYNC_OFFSET_COLOR),
+		)
+	}
+
 	return nil
 }
 
@@ -321,6 +338,10 @@ func (w *AudioDisplayWidget) Options() widgetapi.Options {
 
 func mousePointToTimestampOffset(p image.Point, area image.Rectangle, window TimeSpan) time.Duration {
 	return window.Start + window.Duration()*time.Duration(p.X)/time.Duration(area.Dx())
+}
+
+func timestampOffsetToX(timestamp time.Duration, area image.Rectangle, window TimeSpan) int {
+	return int(timestamp-window.Start) * area.Dx() / int(window.Duration())
 }
 
 func (w *AudioDisplayWidget) Deselect() {
