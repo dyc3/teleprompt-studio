@@ -16,7 +16,7 @@ const (
 
 // Metadata prefixes used in scripts. They should be omited from selectable chunks.
 func getMetaPrefixes() []string {
-	return []string{"TODO", "REF", "NOTE"}
+	return []string{"TODO", "REF", "NOTE", "BIT"}
 }
 
 func (m TakeMark) String() string {
