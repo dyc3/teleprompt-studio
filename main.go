@@ -227,11 +227,11 @@ func main() {
 
 	ctxGlobal, cancelGlobal = context.WithCancel(context.Background())
 
-	updateControlsDisplay()
-
 	currentSession = Session{
 		Audio: make([]int32, 0, sampleRate),
 	}
+
+	updateControlsDisplay()
 
 	log.Print("Reading script")
 	err = readScript(*scriptFile)

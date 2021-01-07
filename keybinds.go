@@ -37,26 +37,31 @@ func getAvailableKeybinds() []keybind {
 				callback: func() { startTake(true) },
 			},
 			{
-				key:      'g',
-				desc:     "Mark Good",
-				callback: keybindMarkGood,
-			},
-			{
-				key:      'b',
-				desc:     "Mark Bad",
-				callback: keybindMarkBad,
-			},
-			{
-				key:      'p',
-				desc:     "Play Selected Take",
-				callback: keybindPlayTake,
-			},
-			{
 				key:      'r',
 				desc:     "End Session",
 				callback: keybindEndSession,
 			},
 		}...)
+
+		if len(currentSession.Doc.headers) > 0 && len(currentSession.Doc.GetChunk(int(selectedChunk)).Takes) > 0 {
+			keys = append(keys, []keybind{
+				{
+					key:      'g',
+					desc:     "Mark Good",
+					callback: keybindMarkGood,
+				},
+				{
+					key:      'b',
+					desc:     "Mark Bad",
+					callback: keybindMarkBad,
+				},
+				{
+					key:      'p',
+					desc:     "Play Selected Take",
+					callback: keybindPlayTake,
+				},
+			}...)
+		}
 
 		if ui.audio.selectionActive {
 			keys = append(keys,
