@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/mum4k/termdash/cell"
+	"github.com/mum4k/termdash/mouse"
 
 	"github.com/mum4k/termdash/private/canvas/buffer"
 
@@ -191,6 +192,12 @@ func (w *ScriptDisplayWidget) Mouse(m *terminalapi.Mouse) error {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
+	if m.Button == mouse.ButtonWheelDown {
+		keybindNextChunk()
+	} else if m.Button == mouse.ButtonWheelUp {
+		keybindPreviousChunk()
+	}
+
 	return nil
 }
 
@@ -198,5 +205,7 @@ func (w *ScriptDisplayWidget) Options() widgetapi.Options {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	return widgetapi.Options{}
+	return widgetapi.Options{
+		WantMouse: widgetapi.MouseScopeWidget,
+	}
 }
