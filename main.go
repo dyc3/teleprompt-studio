@@ -85,6 +85,11 @@ func getAvailableKeybinds() []keybind {
 				desc:     "Play Selected Take",
 				callback: keybindPlayTake,
 			},
+			{
+				key:      'r',
+				desc:     "End Session",
+				callback: keybindEndSession,
+			},
 		}...)
 
 		if ui.audio.selectionActive {
