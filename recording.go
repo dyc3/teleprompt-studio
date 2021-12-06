@@ -232,5 +232,6 @@ func endTake() error {
 		chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
 	}
 	isRecordingTake = false
+	currentSession.FullSave()
 	return nil
 }
