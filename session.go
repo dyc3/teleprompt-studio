@@ -53,19 +53,24 @@ func (s *Session) deriveId() {
 	s.Id = num
 }
 
-func (s *Session) FullSave() error {
-	err := os.Mkdir(SessionsFolder, 0755)
-	if err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	s.deriveId()
-
+func (s *Session) getSessionDir() (string, error) {
 	dir := path.Join(SessionsFolder, fmt.Sprintf("%d", s.Id))
-	err = os.Mkdir(dir, 0755)
+	err := os.Mkdir(dir, 0755)
+	if os.IsExist(err) {
+		return dir, nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return dir, nil
+}
+
+func (s *Session) saveAudio() error {
+	dir, err := s.getSessionDir()
 	if err != nil {
 		return err
 	}
+
 	audioFile, err := os.Create(path.Join(dir, "audio.wav"))
 	if err != nil {
 		return err
@@ -85,27 +90,15 @@ func (s *Session) FullSave() error {
 		return err
 	}
 
-	// save metadata
-	sessionMetadata, err := json.Marshal(
-		struct {
-			SyncOffset string `json:"SyncOffset"`
-		}{
-			Timestamp(&currentSession.Doc.SyncOffset),
-		},
-	)
-	if err != nil {
-		log.Print("Failed to marshal session metadata")
-		return err
-	}
-	metadataFile, err := os.Create(path.Join(dir, "metadata.json"))
-	if err != nil {
-		log.Print("Failed to create metadata file")
-		return err
-	}
-	defer metadataFile.Close()
-	metadataFile.Write(sessionMetadata)
+	return nil
+}
 
-	// save takes
+func (s *Session) saveTakes() error {
+	dir, err := s.getSessionDir()
+	if err != nil {
+		return err
+	}
+
 	takesFile, err := os.Create(path.Join(dir, "takes.csv"))
 	if err != nil {
 		log.Print("Failed to create takes file")
@@ -132,7 +125,64 @@ func (s *Session) FullSave() error {
 			}
 		}
 	}
+	return nil
+}
 
+func (s *Session) saveMetadata() error {
+	dir, err := s.getSessionDir()
+	if err != nil {
+		return err
+	}
+
+	sessionMetadata, err := json.Marshal(
+		struct {
+			SyncOffset string `json:"SyncOffset"`
+		}{
+			Timestamp(&currentSession.Doc.SyncOffset),
+		},
+	)
+	if err != nil {
+		log.Print("Failed to marshal session metadata")
+		return err
+	}
+	metadataFile, err := os.Create(path.Join(dir, "metadata.json"))
+	if err != nil {
+		log.Print("Failed to create metadata file")
+		return err
+	}
+	defer metadataFile.Close()
+	metadataFile.Write(sessionMetadata)
+
+	return nil
+}
+
+func (s *Session) FullSave() error {
+	err := os.Mkdir(SessionsFolder, 0755)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+
+	s.deriveId()
+
+	err = s.saveAudio()
+	if err != nil {
+		log.Printf("Failed to save audio: %s", err)
+		return err
+	}
+
+	err = s.saveMetadata()
+	if err != nil {
+		log.Print("Failed to save metadata")
+		return err
+	}
+
+	err = s.saveTakes()
+	if err != nil {
+		log.Print("Failed to save takes")
+		return err
+	}
+
+	dir, err := s.getSessionDir()
 	log.Printf("Current session successfully saved: %s", dir)
 
 	s.hasBeenSaved = true
