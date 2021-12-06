@@ -111,6 +111,12 @@ func isMeta(line string) bool {
 			return true
 		}
 	}
+	if strings.HasPrefix(line, "{") {
+		return true
+	}
+	if strings.HasPrefix(line, "![[") {
+		return true
+	}
 	return false
 }
 
