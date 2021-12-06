@@ -1,18 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
-	"os"
-	"path"
 	"time"
 
 	"github.com/go-audio/audio"
-
 	"github.com/go-audio/wav"
-
 	"github.com/gordonklaus/portaudio"
 	"github.com/zimmski/osutil"
 )
@@ -23,29 +17,10 @@ var isRecording bool = false
 var audioStream chan []int32 = make(chan []int32, 10)
 var currentSession Session
 var isPlaying bool = false
+var audioDiskStream *wav.Encoder
 
 // Playback position in samples
 var playbackPosition int = 0
-
-type Session struct {
-	Audio []int32
-	Doc   Document
-}
-
-func (s *Session) ExtractAudio(timespan TimeSpan) []int32 {
-	startIdx := durationToSamples(sampleRate, timespan.Start)
-	endIdx := durationToSamples(sampleRate, timespan.End)
-	return s.Audio[startIdx:endIdx]
-}
-
-func (s *Session) updateSyncOffset() {
-	// take the audio from the first sync take, find peak, set Doc.syncOffset
-	t := s.Doc.syncTakes[0].TimeSpan
-	a := s.ExtractAudio(t)
-	peakIdx := indexOfMaxInt32(a)
-	relOffset := samplesToDuration(sampleRate, peakIdx)
-	s.Doc.SyncOffset = t.Start + relOffset
-}
 
 var portaudioInitialized bool = false
 
@@ -100,6 +75,12 @@ func record() {
 }
 
 func StartSession() {
+	currentSession.deriveId()
+	var err error
+	audioDiskStream, err = currentSession.StartStreamingToDisk()
+	if err != nil {
+		log.Fatalf("Failed to streaming to disk: %s", err)
+	}
 	if !isRecording {
 		go record()
 	}
@@ -109,7 +90,8 @@ func EndSession() error {
 	if isRecording {
 		isRecording = false
 	}
-	err := currentSession.Save()
+	currentSession.StopStreamingToDisk(audioDiskStream)
+	err := currentSession.FullSave()
 	if err != nil {
 		log.Printf("Failed to save session: %s", err)
 		return err
@@ -126,6 +108,13 @@ func audioProcessor() {
 			log.Printf("WARNING: audioStream channel is being overloaded, buffered messages: %d/%d", len(audioStream), cap(audioStream))
 		}
 		currentSession.Audio = append(currentSession.Audio, buffer...)
+		buf := audio.PCMBuffer{
+			Format:         audio.FormatMono44100,
+			DataType:       audio.DataTypeI32,
+			SourceBitDepth: 32,
+			I32:            buffer,
+		}
+		audioDiskStream.Write(buf.AsIntBuffer())
 
 		if isRecordingTake {
 			if isRecordingSyncTake {
@@ -171,7 +160,7 @@ func playbackTimespan(timespan TimeSpan) {
 		out = samples[b:clamp(b+bufSize, 0, len(samples))]
 		err := stream.Write()
 		if err != nil {
-			log.Fatalf("Failed to write stream audio: %v", err)
+			log.Printf("Failed to write stream audio: %v", err)
 		}
 	}
 
@@ -243,97 +232,6 @@ func endTake() error {
 		chunk.Takes[selectedTake].End = samplesToDuration(sampleRate, len(currentSession.Audio))
 	}
 	isRecordingTake = false
-	return nil
-}
-
-func (s *Session) Save() error {
-	err := os.Mkdir("sessions", 0755)
-	if err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	num := 0
-	for {
-		_, err := os.Stat(path.Join("sessions", fmt.Sprintf("%d", num)))
-		if os.IsNotExist(err) {
-			break
-		}
-		num++
-	}
-
-	dir := path.Join("sessions", fmt.Sprintf("%d", num))
-	err = os.Mkdir(dir, 0755)
-	if err != nil {
-		return err
-	}
-	audioFile, err := os.Create(path.Join(dir, "audio.wav"))
-	if err != nil {
-		return err
-	}
-	defer audioFile.Close()
-
-	e := wav.NewEncoder(audioFile, sampleRate, 32, 1, 1)
-	defer e.Close()
-	buf := audio.PCMBuffer{
-		Format:         audio.FormatMono44100,
-		DataType:       audio.DataTypeI32,
-		SourceBitDepth: 32,
-		I32:            s.Audio,
-	}
-	err = e.Write(buf.AsIntBuffer())
-	if err != nil {
-		return err
-	}
-
-	// save metadata
-	sessionMetadata, err := json.Marshal(
-		struct {
-			SyncOffset string `json:"SyncOffset"`
-		}{
-			Timestamp(&currentSession.Doc.SyncOffset),
-		},
-	)
-	if err != nil {
-		log.Print("Failed to marshal session metadata")
-		return err
-	}
-	metadataFile, err := os.Create(path.Join(dir, "metadata.json"))
-	if err != nil {
-		log.Print("Failed to create metadata file")
-		return err
-	}
-	defer metadataFile.Close()
-	metadataFile.Write(sessionMetadata)
-
-	// save takes
-	takesFile, err := os.Create(path.Join(dir, "takes.csv"))
-	if err != nil {
-		log.Print("Failed to create takes file")
-		return err
-	}
-	defer takesFile.Close()
-	_, err = takesFile.WriteString("header,chunk_index,chunk_text,take_index,take_mark,take_start,take_end\n")
-	if err != nil {
-		log.Print("Failed to write takes header")
-		return err
-	}
-	syncOffset := currentSession.Doc.SyncOffset
-	for _, header := range currentSession.Doc.headers {
-		for c, chunk := range header.Chunks {
-			for t, take := range chunk.Takes {
-				syncedStart := take.Start - syncOffset
-				syncedEnd := take.End - syncOffset
-				line := fmt.Sprintf("%s,%d,%s...,%d,%s,%s,%s\n", header.Text, c, chunk.Content[:clamp(32, 0, len(chunk.Content))], t, take.Mark, Timestamp(&syncedStart), Timestamp(&syncedEnd))
-				_, err = takesFile.WriteString(line)
-				if err != nil {
-					log.Print("Failed to write takes header")
-					return err
-				}
-			}
-		}
-	}
-
-	log.Printf("Current session successfully saved: %s", dir)
-
+	currentSession.FullSave()
 	return nil
 }
