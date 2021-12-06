@@ -19,7 +19,8 @@ type Session struct {
 	Id    int
 
 	// Indicates whether the session has been saved to disk.
-	hasBeenSaved bool
+	hasBeenSaved     bool
+	streamFileHandle *os.File
 }
 
 func (s *Session) ExtractAudio(timespan TimeSpan) []int32 {
@@ -54,6 +55,8 @@ func (s *Session) deriveId() {
 }
 
 func (s *Session) getSessionDir() (string, error) {
+	os.Mkdir(SessionsFolder, 0755)
+
 	dir := path.Join(SessionsFolder, fmt.Sprintf("%d", s.Id))
 	err := os.Mkdir(dir, 0755)
 	if os.IsExist(err) {
@@ -65,6 +68,7 @@ func (s *Session) getSessionDir() (string, error) {
 	return dir, nil
 }
 
+// Deprecated: audio is now streamed to disk as it is being recorded.
 func (s *Session) saveAudio() error {
 	dir, err := s.getSessionDir()
 	if err != nil {
@@ -164,12 +168,6 @@ func (s *Session) FullSave() error {
 
 	s.deriveId()
 
-	err = s.saveAudio()
-	if err != nil {
-		log.Printf("Failed to save audio: %s", err)
-		return err
-	}
-
 	err = s.saveMetadata()
 	if err != nil {
 		log.Print("Failed to save metadata")
@@ -187,5 +185,32 @@ func (s *Session) FullSave() error {
 
 	s.hasBeenSaved = true
 
+	return nil
+}
+
+func (s *Session) StartStreamingToDisk() (*wav.Encoder, error) {
+	dir, err := s.getSessionDir()
+	if err != nil {
+		return nil, err
+	}
+
+	var audioFile *os.File
+	audioFile, err = os.Create(path.Join(dir, "audio.wav"))
+	if err != nil {
+		return nil, err
+	}
+	s.streamFileHandle = audioFile
+
+	e := wav.NewEncoder(audioFile, sampleRate, 32, 1, 1)
+	s.hasBeenSaved = true
+	return e, nil
+}
+
+func (s *Session) StopStreamingToDisk(e *wav.Encoder) error {
+	err := e.Close()
+	if err != nil {
+		return err
+	}
+	s.streamFileHandle.Close()
 	return nil
 }

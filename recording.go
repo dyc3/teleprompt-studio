@@ -5,6 +5,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/go-audio/audio"
+	"github.com/go-audio/wav"
 	"github.com/gordonklaus/portaudio"
 	"github.com/zimmski/osutil"
 )
@@ -15,6 +17,7 @@ var isRecording bool = false
 var audioStream chan []int32 = make(chan []int32, 10)
 var currentSession Session
 var isPlaying bool = false
+var audioDiskStream *wav.Encoder
 
 // Playback position in samples
 var playbackPosition int = 0
@@ -72,6 +75,12 @@ func record() {
 }
 
 func StartSession() {
+	currentSession.deriveId()
+	var err error
+	audioDiskStream, err = currentSession.StartStreamingToDisk()
+	if err != nil {
+		log.Fatalf("Failed to streaming to disk: %s", err)
+	}
 	if !isRecording {
 		go record()
 	}
@@ -81,6 +90,7 @@ func EndSession() error {
 	if isRecording {
 		isRecording = false
 	}
+	currentSession.StopStreamingToDisk(audioDiskStream)
 	err := currentSession.FullSave()
 	if err != nil {
 		log.Printf("Failed to save session: %s", err)
@@ -98,6 +108,13 @@ func audioProcessor() {
 			log.Printf("WARNING: audioStream channel is being overloaded, buffered messages: %d/%d", len(audioStream), cap(audioStream))
 		}
 		currentSession.Audio = append(currentSession.Audio, buffer...)
+		buf := audio.PCMBuffer{
+			Format:         audio.FormatMono44100,
+			DataType:       audio.DataTypeI32,
+			SourceBitDepth: 32,
+			I32:            buffer,
+		}
+		audioDiskStream.Write(buf.AsIntBuffer())
 
 		if isRecordingTake {
 			if isRecordingSyncTake {
