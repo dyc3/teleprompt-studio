@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -109,7 +110,9 @@ func (s *Session) saveTakes() error {
 		return err
 	}
 	defer takesFile.Close()
-	_, err = takesFile.WriteString("header,chunk_index,chunk_text,take_index,take_mark,take_start,take_end\n")
+	w := csv.NewWriter(takesFile)
+	defer w.Flush()
+	err = w.Write([]string{"header", "chunk_index", "chunk_text", "take_index", "take_mark", "take_start", "take_end"})
 	if err != nil {
 		log.Print("Failed to write takes header")
 		return err
@@ -120,8 +123,15 @@ func (s *Session) saveTakes() error {
 			for t, take := range chunk.Takes {
 				syncedStart := take.Start - syncOffset
 				syncedEnd := take.End - syncOffset
-				line := fmt.Sprintf("%s,%d,%s...,%d,%s,%s,%s\n", header.Text, c, chunk.Content[:clamp(32, 0, len(chunk.Content))], t, take.Mark, Timestamp(&syncedStart), Timestamp(&syncedEnd))
-				_, err = takesFile.WriteString(line)
+				err = w.Write([]string{
+					header.Text,
+					fmt.Sprintf("%d", c),
+					chunk.Content[:clamp(32, 0, len(chunk.Content))] + "...",
+					fmt.Sprintf("%d", t),
+					fmt.Sprintf("%s", take.Mark),
+					fmt.Sprintf("%s", Timestamp(&syncedStart)),
+					fmt.Sprintf("%s", Timestamp(&syncedEnd)),
+				})
 				if err != nil {
 					log.Print("Failed to write takes")
 					return err
